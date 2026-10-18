@@ -64,9 +64,14 @@ const here = Astro.url.pathname;
       <div class="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
         <a href="/" class="flex items-baseline gap-2 no-underline">
           <span class="text-lg font-bold tracking-tight text-accent dark:text-accent-dark">AP News</span>
-          <span class="text-sm muted" lang="te">ఏపీ న్యూస్</span>
+          <span class="hidden text-sm muted min-[440px]:inline" lang="te">ఏపీ న్యూస్</span>
         </a>
         <div class="flex items-center gap-2">
+          <p id="visitors" hidden title="Readers so far"
+             class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-accent/10 px-3 py-1.5 text-sm font-medium text-accent dark:bg-accent-dark/15 dark:text-accent-dark">
+            <span aria-hidden="true">👥</span>
+            <span><span data-n class="font-semibold"></span><span class="hidden sm:inline"> <span class="l-en" data-unit>readers</span><span class="l-te" lang="te">పాఠకులు</span></span></span>
+          </p>
           <button id="lang-toggle" class="btn !px-2.5" type="button" aria-label="Switch language / భాష మార్చండి">
             <span class="l-en" lang="te">తెలుగు</span><span class="l-te">English</span>
           </button>
@@ -119,7 +124,10 @@ const here = Astro.url.pathname;
     </div>
 
     <script>
+      import { showVisitors } from '../scripts/visitors';
+
       const root = document.documentElement;
+      showVisitors(document.getElementById('visitors')!);
       document.getElementById('lang-toggle')?.addEventListener('click', () => {
         const next = root.dataset.lang === 'te' ? 'en' : 'te';
         root.dataset.lang = next;

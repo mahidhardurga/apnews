@@ -6,12 +6,8 @@ import T from '../components/T.astro';
   <h1 class="mb-1 text-3xl font-bold tracking-tight sm:text-4xl">
     <T en="Andhra Pradesh news" te="ఆంధ్రప్రదేశ్ వార్తలు" />
   </h1>
-  <p class="mb-3 muted">
+  <p class="mb-5 muted">
     <T en="Headlines from many outlets. Tap one to read it on the original site." te="వివిధ మీడియా సంస్థల శీర్షికలు. నొక్కితే అసలు వెబ్‌సైట్‌లో కథనం తెరుచుకుంటుంది." />
-  </p>
-  <p id="visitors" hidden class="mb-5 inline-flex items-center gap-2 rounded-full bg-accent/10 px-3.5 py-1.5 text-sm font-medium text-accent dark:bg-accent-dark/15 dark:text-accent-dark">
-    <span aria-hidden="true">👥</span>
-    <span><span data-n class="font-semibold"></span> <span class="l-en"><span data-unit>readers</span> so far</span><span class="l-te" lang="te">పాఠకులు ఇప్పటివరకు</span></span>
   </p>
 
   <input id="q" type="search" class="input mb-3" autocomplete="off" />
@@ -28,9 +24,6 @@ import T from '../components/T.astro';
   import Fuse from 'fuse.js';
   import { esc, getJSON, ui, timeAgo, dual, type Headline } from '../scripts/lib';
   import { districtLabel, topicLabel, TOPIC_ORDER } from '../lib/i18n';
-  import { showVisitors } from '../scripts/visitors';
-
-  showVisitors(document.getElementById('visitors')!);
 
   const PAGE = 40;
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
