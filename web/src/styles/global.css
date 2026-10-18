@@ -1,0 +1,68 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Noto Sans Telugu", ui-sans-serif, system-ui, sans-serif;
+  --color-accent: #0071e3;
+  --color-accent-dark: #2997ff;
+}
+
+/* Language switching: every bilingual string is rendered twice and CSS picks one. */
+html[data-lang="en"] .l-te { display: none !important; }
+html[data-lang="te"] .l-en { display: none !important; }
+html[data-lang="te"] body { font-family: "Noto Sans Telugu", -apple-system, "Inter", ui-sans-serif, system-ui, sans-serif; line-height: 1.7; }
+
+body { @apply bg-[#f5f5f7] text-[#1d1d1f] antialiased dark:bg-black dark:text-[#f5f5f7]; letter-spacing: -0.01em; }
+a { @apply underline-offset-2; }
+.muted { @apply text-[#6e6e73] dark:text-[#98989d]; }
+
+/* surfaces */
+.surface { @apply bg-white dark:bg-[#1c1c1e]; }
+.card {
+  @apply rounded-2xl border border-black/5 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,.04)] dark:border-white/10 dark:bg-[#1c1c1e];
+}
+.btn {
+  @apply inline-flex items-center justify-center rounded-full border border-black/5 bg-white px-3.5 py-1.5 text-sm font-medium
+         text-[#1d1d1f] shadow-[0_1px_2px_rgba(0,0,0,.04)] hover:bg-black/[.03] dark:border-white/10 dark:bg-[#1c1c1e] dark:text-[#f5f5f7] dark:hover:bg-white/10;
+}
+.input {
+  @apply w-full rounded-xl border border-black/5 bg-black/[.05] px-3.5 py-2.5 text-[15px] text-[#1d1d1f] outline-none
+         placeholder:text-[#8e8e93] focus:ring-2 focus:ring-accent/40 dark:border-white/10 dark:bg-white/10 dark:text-[#f5f5f7] dark:focus:ring-accent-dark/50;
+}
+select.input {
+  @apply appearance-none pr-9;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.9rem center;
+}
+.chip {
+  @apply inline-flex items-center rounded-full bg-black/[.05] px-2.5 py-0.5 text-xs text-[#3a3a3c] no-underline hover:bg-accent hover:text-white dark:bg-white/10 dark:text-[#d1d1d6];
+}
+.clamp3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* dropdown filter (Apple-style popover menu) */
+.dd-btn {
+  @apply inline-flex items-center gap-2 rounded-full border border-black/5 bg-white px-4 py-2 text-sm shadow-[0_1px_2px_rgba(0,0,0,.04)]
+         hover:bg-black/[.03] dark:border-white/10 dark:bg-[#1c1c1e] dark:hover:bg-white/10;
+}
+.dd-btn[data-on="true"] { @apply border-accent/30 bg-accent/10 text-accent dark:border-accent-dark/30 dark:bg-accent-dark/15 dark:text-accent-dark; }
+.dd-btn svg { @apply opacity-60 transition-transform; }
+.dd-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+.dd-menu {
+  @apply absolute left-0 z-30 mt-2 max-h-[60vh] min-w-[15rem] max-w-[85vw] overflow-auto rounded-2xl p-1.5 shadow-2xl ring-1 ring-black/5
+         backdrop-blur-xl bg-white/85 dark:bg-[#2c2c2e]/85 dark:ring-white/10;
+}
+.dd-menu.flip { @apply left-auto right-0; }
+.dd-opt {
+  @apply flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-accent hover:text-white dark:hover:bg-accent-dark dark:hover:text-black;
+}
+.dd-opt .tick { @apply w-4 shrink-0 text-center text-xs; }
+.dd-opt .n { @apply ml-auto pl-3 text-xs opacity-60; }
+
+/* district tile map */
+.tile { cursor: pointer; transition: stroke-width .1s; }
+.tile:focus-visible, .tile:hover { stroke-width: 3; }
+
+/* native widgets (scrollbars, selects) follow the theme */
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+.dd-menu { scrollbar-width: thin; scrollbar-color: rgba(128, 128, 128, .45) transparent; }

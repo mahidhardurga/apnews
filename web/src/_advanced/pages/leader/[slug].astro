@@ -1,0 +1,31 @@
+---
+import Base from '../../layouts/Base.astro';
+import T from '../../components/T.astro';
+import { fmtDate, leaders } from '../../lib/data';
+import type { Leader } from '../../lib/types';
+
+export function getStaticPaths() {
+  return leaders().map((l) => ({ params: { slug: l.slug }, props: { l } }));
+}
+const { l } = Astro.props as { l: Leader };
+---
+<Base title={l.name} description={`Recent Andhra Pradesh news involving ${l.name}, from multiple outlets.`} path={`/leader/${l.slug}/`}>
+  <nav class="mb-3 text-sm"><a href="/leaders/" class="underline">← <T en="All leaders" te="అందరు నాయకులు" /></a></nav>
+  <h1 class="text-2xl font-bold">{l.name}</h1>
+  <p class="mt-1 text-sm muted">
+    {l.count} <T en="stories in the last 7 days" te="గత 7 రోజుల్లో వార్తలు" />
+    {l.parties.length > 0 && <> · <T en="appears alongside" te="ప్రస్తావించిన పార్టీలు" />: {l.parties.join(', ')}</>}
+  </p>
+  <p class="mt-2 text-xs muted"><T en="Tagged by keyword matching, so some mentions may be incidental." te="కీవర్డ్ల ఆధారంగా ట్యాగ్ చేసినవి; కొన్ని ప్రస్తావనలు యాదృచ్ఛికం కావచ్చు." /></p>
+  <ul class="mt-4 space-y-2">
+    {l.stories.map((s) => (
+      <li class="card">
+        <a href={`/story/${s.id}/`} class="font-medium no-underline hover:underline">
+          <span class="l-en">{s.headline_en}</span><span class="l-te" lang="te">{s.headline_te}</span>
+        </a>
+        <p class="mt-1 text-xs muted">{fmtDate(s.updated)}</p>
+      </li>
+    ))}
+  </ul>
+  <p class="mt-4"><a class="btn no-underline" href={`/?leader=${encodeURIComponent(l.name)}`}><T en="Filter the home feed" te="హోమ్ ఫీడ్‌లో చూడండి" /></a></p>
+</Base>

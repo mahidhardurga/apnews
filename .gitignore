@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+node_modules/
+web/dist/
+web/.astro/
+.DS_Store
+.claude/

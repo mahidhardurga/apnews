@@ -1,0 +1,5 @@
+---
+// Bilingual string: both rendered, CSS hides the inactive language.
+const { en, te } = Astro.props as { en: string; te: string };
+---
+<span class="l-en">{en}</span><span class="l-te" lang="te">{te}</span>

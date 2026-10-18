@@ -1,0 +1,119 @@
+# Source registry. Each entry maps to a module in scraper/apnews/sources/.
+#
+#   id        unique slug, also stored on every article
+#   name      display name
+#   language  "en" | "te"
+#   module    python module under apnews.sources (omit/null = not implemented yet)
+#   enabled   false = skipped entirely
+#   feeds     RSS/Atom URLs (module-specific options go under `options`)
+#
+# Only enable a source after checking its robots.txt / terms. We store headline,
+# a short excerpt, URL, source, time and language only, and always link back.
+
+defaults:
+  user_agent: "APNewsBot/1.0 (+https://apnews.mahidhardurga.in/about; news aggregator, links back to originals)"
+  min_delay_seconds: 2.0      # per-host politeness delay
+  timeout_seconds: 20
+  max_items_per_source: 60
+  excerpt_chars: 0            # 0 = titles only (no excerpt stored)
+
+sources:
+  # ---- working sources (stage 1) -------------------------------------------
+  - id: the_hindu_ap
+    name: The Hindu (Andhra Pradesh)
+    language: en
+    module: the_hindu
+    enabled: true
+    feeds:
+      - https://www.thehindu.com/news/national/andhra-pradesh/feeder/default.rss
+
+  - id: tv9_telugu
+    name: TV9 Telugu
+    language: te
+    module: tv9_telugu
+    enabled: true
+    feeds:
+      - https://www.tv9telugu.com/andhra-pradesh/feed
+
+  - id: sakshi
+    name: Sakshi
+    language: te
+    module: sakshi
+    enabled: true
+    feeds:
+      - https://www.sakshi.com/rss.xml
+    options:
+      # the feed is national; keep only AP section URLs
+      url_must_contain: ["/andhra-pradesh/"]
+
+  - id: tv10
+    name: 10TV
+    language: te
+    module: tv10
+    enabled: true
+    feeds:
+      - https://www.10tv.in/andhra-pradesh/feed
+
+  # ---- planned (disabled until a module is written and verified) -----------
+  - id: deccan_chronicle_ap
+    name: Deccan Chronicle (AP)
+    language: en
+    enabled: false
+    notes: "All feed URLs return 403 to our bot UA. Not bypassing; needs permission or an allowed feed."
+  - id: toi_ap
+    name: Times of India (AP cities)
+    language: en
+    enabled: false
+    notes: "AP city feed IDs not found (the Hyderabad feed is not AP). Add once a Vijayawada/Visakhapatnam feed URL is known."
+  - id: indian_express_ap
+    name: The Indian Express (AP)
+    language: en
+    module: indian_express_ap
+    enabled: true
+    feeds:
+      - https://indianexpress.com/section/india/feed/
+    options:
+      # national feed: keep only items mentioning AP politics/places
+      keywords_any: [Andhra, Amaravati, Chandrababu, Naidu, Jagan, Pawan Kalyan, TDP, YSRCP, Telugu Desam, Vijayawada, Visakhapatnam, Tirupati, Tirumala, Polavaram]
+  - id: eenadu
+    name: Eenadu
+    language: te
+    module: eenadu
+    enabled: true
+    feeds:
+      - https://www.eenadu.net/sitemap-news.xml
+    options:
+      url_regex: "/telugu-news/andhra-pradesh/"
+      limit: 80
+  - id: andhra_jyothy
+    name: Andhra Jyothy
+    language: te
+    module: andhra_jyothy
+    enabled: true
+    feeds:
+      - https://www.andhrajyothy.com/sitemaps/news-sitemap.xml
+    options:
+      url_regex: "/\\d{4}/andhra-pradesh/"
+      limit: 80
+  - id: ntv_telugu
+    name: NTV Telugu
+    language: te
+    module: ntv_telugu
+    enabled: true
+    feeds:
+      - https://ntvtelugu.com/andhra-pradesh/feed
+  - id: abn
+    name: ABN Andhra Jyothy TV
+    language: te
+    enabled: false
+    notes: "abntelugu.tv / abnlive.com unreachable from here (connection failed)."
+  - id: ap_govt
+    name: AP Government press releases
+    language: en
+    enabled: false
+    notes: "ipr.ap.gov.in is a JavaScript app with no static pages or feed; would need its API or Playwright."
+  - id: ceo_ap
+    name: CEO Andhra Pradesh
+    language: en
+    enabled: false
+    notes: "robots.txt is Disallow: / for all bots, so it must not be scraped."

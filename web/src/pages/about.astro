@@ -1,0 +1,31 @@
+---
+import Base from '../layouts/Base.astro';
+import T from '../components/T.astro';
+const sources = ['The Hindu (Andhra Pradesh)', 'The Indian Express', 'TV9 Telugu', 'NTV Telugu', '10TV', 'Eenadu', 'Andhra Jyothy', 'Sakshi'];
+---
+<Base title="About & methodology" description="How AP News collects and tags Andhra Pradesh headlines." path="/about/">
+  <h1 class="mb-4 text-2xl font-bold"><T en="About & methodology" te="గురించి & పద్ధతి" /></h1>
+  <div class="space-y-6 text-[15px] leading-relaxed">
+    <section>
+      <h2 class="mb-1 text-lg font-semibold"><T en="What this is" te="ఇది ఏమిటి" /></h2>
+      <p><T en="AP News is a simple headline list for Andhra Pradesh news, from politics to sports, crime, weather and more. It does not write or rewrite anything: it shows each outlet's own headline, and tapping it opens the original article on the outlet's website."
+            te="ఏపీ న్యూస్ ఆంధ్రప్రదేశ్ వార్తల శీర్షికల జాబితా (రాజకీయాలు, క్రీడలు, నేరాలు, వాతావరణం తదితరాలు). ఇది ఏదీ రాయదు, మార్చదు: ప్రతి సంస్థ సొంత శీర్షికను చూపుతుంది; నొక్కితే ఆ సంస్థ వెబ్‌సైట్‌లో అసలు కథనం తెరుచుకుంటుంది." /></p>
+    </section>
+    <section>
+      <h2 class="mb-1 text-lg font-semibold"><T en="Sources" te="వనరులు" /></h2>
+      <p class="mb-1"><T en="Collected from public RSS feeds and news sitemaps, about every 30 minutes:" te="ప్రజా RSS ఫీడ్‌ల నుండి, సుమారు ప్రతి 30 నిమిషాలకు సేకరిస్తున్నవి:" /></p>
+      <ul class="list-disc pl-5">{sources.map((s) => <li>{s}</li>)}</ul>
+      <p class="mt-1 muted"><T en="The choice of outlets is not balanced by political leaning." te="సంస్థల ఎంపిక రాజకీయ వైఖరుల ప్రకారం సమతుల్యం కాదు." /></p>
+    </section>
+    <section>
+      <h2 class="mb-1 text-lg font-semibold"><T en="Topics and districts" te="అంశాలు, జిల్లాలు" /></h2>
+      <p><T en="Each headline gets one topic (politics, crime and courts, sports, entertainment, business, technology, education, health, weather, agriculture, devotional or general) and, if a place name appears, one district. This is done by simple keyword matching on the headline and the English words in its link, so it is approximate: some headlines land in General or the wrong topic, and headlines that name no district are not on the map."
+            te="ప్రతి శీర్షికకు ఒక అంశం (రాజకీయాలు, నేరాలు-కోర్టులు, క్రీడలు, సినిమా, వ్యాపారం, టెక్నాలజీ, విద్య, ఆరోగ్యం, వాతావరణం, వ్యవసాయం, ఆధ్యాత్మికం లేదా ఇతరాలు), ప్రాంతం పేరు ఉంటే ఒక జిల్లా ఇస్తాం. ఇది శీర్షిక, లింక్‌లోని ఆంగ్ల పదాల కీవర్డ్ సరిపోలిక మాత్రమే, కాబట్టి కచ్చితం కాదు: కొన్ని శీర్షికలు ఇతరాలు లేదా తప్పు అంశంలో చేరవచ్చు; జిల్లా పేరు లేని శీర్షికలు పటంలో కనిపించవు." /></p>
+    </section>
+    <section>
+      <h2 class="mb-1 text-lg font-semibold"><T en="What we store" te="మేము ఏమి నిల్వ చేస్తాం" /></h2>
+      <p><T en="Only the headline, its link, the outlet, the publish time and the language. We obey robots.txt and rate-limit requests. No article text is copied."
+            te="శీర్షిక, లింక్, సంస్థ, ప్రచురణ సమయం, భాష మాత్రమే. robots.txt పాటిస్తాం, అభ్యర్థనల వేగం పరిమితం చేస్తాం. కథనం పాఠ్యాన్ని కాపీ చేయం." /></p>
+    </section>
+  </div>
+</Base>

@@ -1,0 +1,34 @@
+---
+import Base from '../layouts/Base.astro';
+import T from '../components/T.astro';
+---
+<Base title="Trending" description="Who and what is trending in Andhra Pradesh politics: leaders, parties, topics and districts." path="/trending/">
+  <h1 class="mb-1 text-2xl font-bold"><T en="Trending" te="ట్రెండింగ్" /></h1>
+  <p class="mb-4 text-sm muted"><T en="Mentions in the last 24 hours, compared with the 24 hours before." te="గత 24 గంటల ప్రస్తావనలు, అంతకు ముందు 24 గంటలతో పోలిస్తే." /></p>
+  <div id="root" class="grid gap-4 sm:grid-cols-2"><p class="muted"><T en="Loading…" te="లోడ్ అవుతోంది…" /></p></div>
+</Base>
+
+<script>
+  import { dual, esc, getJSON } from '../scripts/lib';
+  import { districtLabel, KIND_LABEL, topicLabel } from '../lib/i18n';
+  import type { TrendRow } from '../lib/types';
+
+  const root = document.getElementById('root')!;
+  getJSON<{ tags: TrendRow[] }>('trending.json')
+    .then(({ tags }) => {
+      if (!tags.length) { root.innerHTML = `<p class="muted">${dual('Nothing trending yet.', 'ప్రస్తుతం ట్రెండింగ్ ఏమీ లేదు.')}</p>`; return; }
+      const label = (r: TrendRow): [string, string] =>
+        r.kind === 'topic' ? topicLabel(r.name) : r.kind === 'district' ? districtLabel(r.name) : [r.name, r.name];
+      root.innerHTML = (['leader', 'party', 'topic', 'district'] as const).map((kind) => {
+        const rows = tags.filter((r) => r.kind === kind).slice(0, 8);
+        if (!rows.length) return '';
+        return `<section class="card"><h2 class="mb-2 font-semibold">${dual(...KIND_LABEL[kind])}</h2><ol class="space-y-1.5">
+          ${rows.map((r) => `<li class="flex items-center justify-between gap-3 text-sm">
+            <a class="no-underline hover:underline" href="/?${kind}=${encodeURIComponent(r.name)}">${dual(...label(r))}</a>
+            <span class="whitespace-nowrap muted">${r.count}
+              <span class="${r.delta > 0 ? 'text-emerald-600 dark:text-emerald-400' : r.delta < 0 ? 'text-rose-600 dark:text-rose-400' : ''}">${r.delta > 0 ? '▲' : r.delta < 0 ? '▼' : '–'}${esc(String(Math.abs(r.delta) || ''))}</span></span></li>`).join('')}
+        </ol></section>`;
+      }).join('');
+    })
+    .catch(() => (root.innerHTML = `<p class="muted">${dual('No data yet.', 'ఇంకా డేటా లేదు.')}</p>`));
+</script>

@@ -1,0 +1,67 @@
+# Keyword lexicon for the rule-based (no-LLM) enricher. English terms match on word boundaries,
+# Telugu terms match as substrings (Telugu attaches suffixes to words). Edit freely.
+
+parties:
+  TDP: [TDP, Telugu Desam, తెలుగుదేశం, టీడీపీ]
+  YSRCP: [YSRCP, YSR Congress, వైసీపీ, వైఎస్సార్‌సీపీ, వైఎస్సార్సీపీ, వైఎస్సార్ కాంగ్రెస్]
+  JSP: [JSP, Jana Sena, JanaSena, జనసేన]
+  BJP: [BJP, Bharatiya Janata, బీజేపీ]
+  INC: [Congress, కాంగ్రెస్]
+  CPI(M): [CPI(M), CPM, సీపీఎం]
+  CPI: [CPI, సీపీఐ]
+  BRS: [BRS, బీఆర్ఎస్]
+
+# canonical name (must match taxonomy.yaml leaders where one exists) -> extra keywords
+leaders:
+  N. Chandrababu Naidu: [Chandrababu, Naidu, చంద్రబాబు]
+  Pawan Kalyan: [Pawan Kalyan, పవన్ కల్యాణ్, పవన్ కళ్యాణ్, పవన్]
+  Nara Lokesh: [Lokesh, లోకేశ్, లోకేష్]
+  Y.S. Jagan Mohan Reddy: [Jagan, జగన్]
+  Y.S. Sharmila: [Sharmila, షర్మిల]
+  Daggubati Purandeswari: [Purandeswari, పురందేశ్వరి]
+  Narendra Modi: [Modi, మోదీ, మోడీ]
+  Revanth Reddy: [Revanth, రేవంత్]
+
+districts:
+  Srikakulam: [Srikakulam, శ్రీకాకుళం]
+  Vizianagaram: [Vizianagaram, విజయనగరం]
+  Parvathipuram Manyam: [Parvathipuram, పార్వతీపురం]
+  Alluri Sitharama Raju: [Alluri Sitharama, Paderu, అల్లూరి, పాడేరు]
+  Visakhapatnam: [Visakhapatnam, Vizag, Visakha, విశాఖ]
+  Anakapalli: [Anakapalli, అనకాపల్లి]
+  Kakinada: [Kakinada, కాకినాడ]
+  East Godavari: [East Godavari, Rajamahendravaram, Rajahmundry, తూర్పు గోదావరి, రాజమహేంద్రవరం, రాజమండ్రి]
+  Konaseema: [Konaseema, Amalapuram, కోనసీమ, అమలాపురం]
+  West Godavari: [West Godavari, Bhimavaram, Tadepalligudem, పశ్చిమ గోదావరి, భీమవరం]
+  Eluru: [Eluru, ఏలూరు]
+  NTR: [NTR district, NTR District, Vijayawada, ఎన్టీఆర్ జిల్లా, విజయవాడ]
+  Krishna: [Krishna district, Krishna District, Machilipatnam, Bandar, కృష్ణా జిల్లా, మచిలీపట్నం]
+  Guntur: [Guntur, Tadepalli, Mangalagiri, Amaravati, గుంటూరు, మంగళగిరి, అమరావతి]
+  Palnadu: [Palnadu, Narasaraopet, పల్నాడు, నరసరావుపేట]
+  Bapatla: [Bapatla, బాపట్ల]
+  Prakasam: [Prakasam, Ongole, ప్రకాశం, ఒంగోలు]
+  Nellore: [Nellore, నెల్లూరు]
+  Kurnool: [Kurnool, కర్నూలు]
+  Nandyal: [Nandyal, నంద్యాల]
+  Anantapur: [Anantapur, Anantapuramu, అనంతపురం]
+  Sri Sathya Sai: [Sathya Sai, Puttaparthi, Hindupur, సత్యసాయి, పుట్టపర్తి, హిందూపురం]
+  YSR Kadapa: [Kadapa, Cuddapah, కడప]
+  Annamayya: [Annamayya, Rayachoti, Madanapalle, Punganur, అన్నమయ్య, రాయచోటి, మదనపల్లి, పుంగనూరు]
+  Chittoor: [Chittoor, చిత్తూరు]
+  Tirupati: [Tirupati, Tirumala, Srikalahasti, తిరుపతి, తిరుమల, శ్రీకాళహస్తి]
+
+# first matching topic (in this order) wins; falls back to "politics" for political stories
+topics:
+  elections: [election, poll, polls, nomination, candidate, voter, mayor, municipal, civic body, local body, ఎన్నిక, నామినేషన్, అభ్యర్థి, మేయర్, మున్సిపల్, స్థానిక సంస్థల]
+  law-order: [police, arrest, murder, attack, violence, court, High Court, FIR, పోలీసు, అరెస్ట్, హత్య, దాడి, హైకోర్టు]
+  infrastructure: [Amaravati, Polavaram, highway, railway, port, airport, metro, road, అమరావతి, పోలవరం, రైల్వే, రహదారి]
+  agriculture: [farmer, crop, paddy, irrigation, Annadata, రైతు, పంట, అన్నదాత]
+  welfare: [pension, scheme, subsidy, ration, welfare, Talliki Vandanam, Aadabidda, పెన్షన్, పథకం, రేషన్]
+  economy: [budget, investment, industry, jobs, GST, revenue, పెట్టుబడి, బడ్జెట్, పరిశ్రమ]
+  education: [school, university, students, exam, APPSC, DSC, పాఠశాల, విశ్వవిద్యాలయం, పరీక్ష]
+  health: [hospital, health, dengue, medical, ఆసుపత్రి, ఆరోగ్య]
+  environment: [rain, cyclone, flood, weather, pollution, వర్ష, తుపాను, వరద]
+  governance: [government, Cabinet, Government Order, minister, department, ప్రభుత్వం, కేబినెట్, మంత్రి, ఉత్తర్వులు]
+
+# A story is "relevant" (political) if it matches a party, a leader, or one of these
+political_terms: [MLA, MLC, MP, minister, Chief Minister, Deputy Chief Minister, CM, Assembly, Cabinet, opposition, ruling, alliance, election, polls, nomination, mayor, municipal, civic body, local body, State Election Commission, SEC, Governor, government order, ఎమ్మెల్యే, ఎమ్మెల్సీ, ఎంపీ, మంత్రి, ముఖ్యమంత్రి, సీఎం, డిప్యూటీ సీఎం, అసెంబ్లీ, కేబినెట్, ప్రతిపక్ష, ఎన్నిక, నామినేషన్, మేయర్, మున్సిపల్, ప్రభుత్వం, గవర్నర్]

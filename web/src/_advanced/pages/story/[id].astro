@@ -1,0 +1,82 @@
+---
+import Base from '../../layouts/Base.astro';
+import T from '../../components/T.astro';
+import { allStories, fmtDate, SITE } from '../../lib/data';
+import { districtLabel, topicLabel } from '../../lib/i18n';
+import type { Story } from '../../lib/types';
+
+export function getStaticPaths() {
+  return allStories().map((s) => ({ params: { id: s.id }, props: { s } }));
+}
+const { s } = Astro.props as { s: Story };
+
+// group articles by outlet, newest first
+const byOutlet = new Map<string, Story['articles']>();
+for (const a of [...s.articles].sort((x, y) => y.published.localeCompare(x.published))) {
+  byOutlet.set(a.source_name, [...(byOutlet.get(a.source_name) ?? []), a]);
+}
+const t = s.tags;
+const tagLinks: { href: string; en: string; te: string }[] = [
+  ...t.parties.map((p) => ({ href: `/?party=${encodeURIComponent(p)}`, en: p, te: p })),
+  ...t.leaders.map((l) => ({ href: `/?leader=${encodeURIComponent(l)}`, en: l, te: l })),
+  ...(t.district ? [{ href: `/?district=${encodeURIComponent(t.district)}`, en: districtLabel(t.district)[0], te: districtLabel(t.district)[1] }] : []),
+  ...(t.topic && t.topic !== 'other' ? [{ href: `/?topic=${t.topic}`, en: topicLabel(t.topic)[0], te: topicLabel(t.topic)[1] }] : []),
+];
+const jsonLd = {
+  '@context': 'https://schema.org', '@type': 'NewsArticle',
+  headline: s.headline_en, datePublished: s.created, dateModified: s.updated,
+  mainEntityOfPage: `${SITE}/story/${s.id}/`,
+  publisher: { '@type': 'Organization', name: 'AP News' },
+};
+---
+<Base title={s.headline_en} description={s.summary_en} path={`/story/${s.id}/`} type="article" jsonLd={jsonLd}>
+  <nav class="mb-3 text-sm"><a href="/" class="underline">← <T en="All stories" te="అన్ని వార్తలు" /></a></nav>
+  <article>
+    <h1 class="text-2xl font-bold leading-tight sm:text-3xl">
+      <span class="l-en">{s.headline_en}</span><span class="l-te" lang="te">{s.headline_te}</span>
+    </h1>
+    <p class="mt-2 text-xs muted">
+      <T en="Updated" te="నవీకరణ" /> {fmtDate(s.updated)} · {s.articles.length} <T en="articles from" te="కథనాలు –" /> {byOutlet.size} <T en="outlets" te="మీడియా సంస్థలు" />
+    </p>
+
+    <p class="mt-4 text-base leading-relaxed">
+      <span class="l-en">{s.summary_en}</span><span class="l-te" lang="te">{s.summary_te}</span>
+    </p>
+    {(s.fallback?.en || s.fallback?.te) && (
+      <p class="mt-1 text-xs muted">
+        <span class="l-en">{s.fallback?.en ? 'No English outlet has covered this yet; the text above is the original Telugu.' : ''}</span>
+        <span class="l-te" lang="te">{s.fallback?.te ? 'ఈ వార్తను తెలుగు మీడియా ఇంకా ప్రచురించలేదు; పైన ఉన్నది అసలు ఆంగ్ల పాఠ్యం.' : ''}</span>
+      </p>
+    )}
+
+    <div class="mt-3 flex flex-wrap gap-1.5">
+      {tagLinks.map((l) => <a class="chip" href={l.href}><span class="l-en">{l.en}</span><span class="l-te" lang="te">{l.te}</span></a>)}
+    </div>
+
+    <h2 class="mt-8 mb-1 text-lg font-semibold"><T en="How each outlet covered it" te="ఒక్కో మీడియా ఎలా కవర్ చేసింది" /></h2>
+    <p class="mb-3 text-xs muted">
+      <T en="Each outlet's own headline and excerpt, unedited. Comparing wording and emphasis is left to you."
+         te="ప్రతి మీడియా సంస్థ సొంత శీర్షిక, సారాంశం – మార్పులు లేకుండా. పదాలు, ప్రాధాన్యతను మీరే పోల్చి చూడండి." />
+    </p>
+    <div class="grid gap-3 md:grid-cols-2">
+      {[...byOutlet.entries()].map(([outlet, arts]) => (
+        <section class="card">
+          <h3 class="mb-2 text-sm font-semibold">{outlet}
+            <span class="chip ml-1 !px-1.5 !py-0 align-middle">{arts[0]!.language === 'te' ? 'తెలుగు' : 'English'}</span></h3>
+          <ul class="space-y-3">
+            {arts.map((a) => (
+              <li>
+                <p class="font-medium leading-snug" lang={a.language}>{a.title}</p>
+                {a.excerpt && <p class="mt-1 text-sm text-slate-600 dark:text-slate-300" lang={a.language}>{a.excerpt}</p>}
+                <p class="mt-1 text-xs muted">
+                  {fmtDate(a.published)} ·
+                  <a href={a.url} rel="noopener noreferrer nofollow" target="_blank" class="underline"><T en="Read the original" te="అసలు కథనం చదవండి" /> ↗</a>
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  </article>
+</Base>

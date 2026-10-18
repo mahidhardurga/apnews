@@ -1,0 +1,148 @@
+---
+import Base from '../layouts/Base.astro';
+import T from '../components/T.astro';
+---
+<Base>
+  <h1 class="mb-1 text-3xl font-bold tracking-tight sm:text-4xl">
+    <T en="Andhra Pradesh news" te="ఆంధ్రప్రదేశ్ వార్తలు" />
+  </h1>
+  <p class="mb-5 muted">
+    <T en="Headlines from many outlets. Tap one to read it on the original site." te="వివిధ మీడియా సంస్థల శీర్షికలు. నొక్కితే అసలు వెబ్‌సైట్‌లో కథనం తెరుచుకుంటుంది." />
+  </p>
+
+  <input id="q" type="search" class="input mb-3" autocomplete="off" />
+  <div id="filters" class="mb-2 flex flex-wrap items-center gap-2"></div>
+  <p id="count" class="mb-3 px-1 text-xs muted" aria-live="polite"></p>
+
+  <ul id="list" class="divide-y divide-black/5 overflow-hidden rounded-2xl border border-black/5 bg-white dark:divide-white/10 dark:border-white/10 dark:bg-[#1c1c1e]" aria-busy="true">
+    <li class="p-4 muted"><T en="Loading headlines…" te="శీర్షికలు లోడ్ అవుతున్నాయి…" /></li>
+  </ul>
+  <div class="mt-5 text-center"><button id="more" type="button" class="btn" hidden><T en="Load more" te="మరిన్ని" /></button></div>
+</Base>
+
+<script>
+  import Fuse from 'fuse.js';
+  import { esc, getJSON, ui, timeAgo, dual, type Headline } from '../scripts/lib';
+  import { districtLabel, topicLabel, TOPIC_ORDER } from '../lib/i18n';
+
+  const PAGE = 40;
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const list = $('list'), count = $('count'), more = $<HTMLButtonElement>('more'), q = $<HTMLInputElement>('q'), filtersEl = $('filters');
+
+  let items: Headline[] = [];
+  let fuse: Fuse<Headline>;
+  let shown = PAGE;
+  const sp = new URLSearchParams(location.search);
+  const state = { topic: sp.get('topic') ?? '', district: sp.get('district') ?? '', source: sp.get('source') ?? '',
+                  lang: sp.get('lang') ?? '', date: sp.get('date') ?? '', q: sp.get('q') ?? '' };
+  type Key = keyof typeof state;
+  q.value = state.q;
+
+  interface Opt { v: string; label: string; n?: number }
+  const chevron = '<svg width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1.5l5 5 5-5"/></svg>';
+
+  /** One Apple-style popover dropdown. `all` is the label of the "no filter" row. */
+  function dropdown(k: Key, all: [string, string], opts: Opt[], allCount?: number): string {
+    const te = ui('en', 'te') === 'te';
+    const cur = opts.find((o) => o.v === state[k]);
+    const row = (o: Opt) => `<button type="button" role="option" class="dd-opt" data-v="${esc(o.v)}" aria-selected="${state[k] === o.v}">
+        <span class="tick">${state[k] === o.v ? '✓' : ''}</span><span>${o.label}</span>${o.n != null ? `<span class="n">${o.n}</span>` : ''}</button>`;
+    return `<div class="relative" data-dd="${k}">
+      <button type="button" class="dd-btn" aria-haspopup="listbox" aria-expanded="false" data-on="${!!cur}">
+        <span>${cur ? cur.label : all[te ? 1 : 0]}</span>${chevron}</button>
+      <div class="dd-menu hidden" role="listbox">${row({ v: '', label: all[te ? 1 : 0], n: allCount })}${opts.map(row).join('')}</div>
+    </div>`;
+  }
+
+  function buildFilters() {
+    const te = ui('en', 'te') === 'te';
+    const tally = (get: (i: Headline) => string | null) => {
+      const m = new Map<string, number>();
+      items.forEach((i) => { const v = get(i); if (v) m.set(v, (m.get(v) ?? 0) + 1); });
+      return m;
+    };
+    const topics = tally((i) => i.topic), districts = tally((i) => i.district), sources = tally((i) => i.source);
+    const names = new Map(items.map((i) => [i.source, i.source_name]));
+    const active = (Object.keys(state) as Key[]).some((k) => state[k].trim());
+
+    filtersEl.innerHTML =
+      dropdown('topic', ['All topics', 'అన్ని అంశాలు'],
+        TOPIC_ORDER.filter((t) => topics.has(t)).map((t) => ({ v: t, label: dual(...topicLabel(t)), n: topics.get(t) })), items.length) +
+      dropdown('district', ['All districts', 'అన్ని జిల్లాలు'],
+        [...districts.keys()].sort().map((d) => ({ v: d, label: dual(...districtLabel(d)), n: districts.get(d) }))) +
+      dropdown('source', ['All outlets', 'అన్ని మీడియా సంస్థలు'],
+        [...sources.keys()].map((s) => ({ v: s, label: esc(names.get(s) ?? s), n: sources.get(s) }))) +
+      dropdown('lang', ['Any language', 'ఏ భాషైనా'], [{ v: 'en', label: 'English' }, { v: 'te', label: 'తెలుగు' }]) +
+      dropdown('date', ['Any time', 'ఎప్పుడైనా'], [{ v: '6h', label: ui('Last 6 hours', 'గత 6 గంటలు') }, { v: '24h', label: ui('Last 24 hours', 'గత 24 గంటలు') }, { v: '7d', label: ui('Last 7 days', 'గత 7 రోజులు') }]) +
+      (active ? `<button type="button" id="reset" class="px-2 text-sm text-accent dark:text-accent-dark">${ui('Clear', 'తొలగించు')}</button>` : '');
+    q.placeholder = ui('Search headlines', 'శీర్షికల కోసం వెతకండి');
+  }
+
+  function render() {
+    const term = state.q.trim();
+    let res = term ? fuse.search(term).map((r) => r.item) : items;
+    res = res.filter((i) =>
+      (!state.topic || i.topic === state.topic) &&
+      (!state.district || i.district === state.district) &&
+      (!state.source || i.source === state.source) &&
+      (!state.lang || i.language === state.lang) &&
+      (!state.date || Date.now() - new Date(i.published).getTime() <= ({ '6h': 6, '24h': 24, '7d': 168 }[state.date] ?? 168) * 3600_000));
+    count.textContent = ui(`${res.length} headlines`, `${res.length} శీర్షికలు`);
+    list.setAttribute('aria-busy', 'false');
+    list.innerHTML = res.length
+      ? res.slice(0, shown).map((i) => `
+        <li>
+          <a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer" class="block px-4 py-3.5 no-underline hover:bg-black/[.03] dark:hover:bg-white/5">
+            <span class="block text-[17px] font-medium leading-snug" lang="${i.language}">${esc(i.title)}</span>
+            <span class="mt-1 block text-xs muted">${esc(i.source_name)} · ${timeAgo(i.published)}${i.topic !== 'general' ? ` · ${dual(...topicLabel(i.topic))}` : ''}${i.district ? ` · ${dual(...districtLabel(i.district))}` : ''}</span>
+          </a>
+        </li>`).join('')
+      : `<li class="p-5 muted">${ui('No headlines match.', 'సరిపోయే శీర్షికలు లేవు.')}</li>`;
+    more.hidden = res.length <= shown;
+    const out = new URLSearchParams();
+    (Object.keys(state) as Key[]).forEach((k) => state[k].trim() && out.set(k, state[k]));
+    history.replaceState(null, '', out.size ? `?${out}` : location.pathname);
+  }
+
+  const refresh = () => { shown = PAGE; buildFilters(); render(); };
+
+  // dropdown behaviour: toggle, choose, click-outside, Escape
+  const closeAll = () => filtersEl.querySelectorAll('.dd-menu').forEach((m) => {
+    m.classList.add('hidden');
+    m.previousElementSibling?.setAttribute('aria-expanded', 'false');
+  });
+  filtersEl.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.closest('#reset')) { (Object.keys(state) as Key[]).forEach((k) => (state[k] = '')); q.value = ''; refresh(); return; }
+    const opt = t.closest('.dd-opt') as HTMLElement | null;
+    const wrap = t.closest('[data-dd]') as HTMLElement | null;
+    if (!wrap) return;
+    if (opt) { state[wrap.dataset.dd as Key] = opt.dataset.v ?? ''; refresh(); return; }
+    const btn = wrap.querySelector('.dd-btn') as HTMLElement, menu = wrap.querySelector('.dd-menu') as HTMLElement;
+    const wasOpen = !menu.classList.contains('hidden');
+    closeAll();
+    if (!wasOpen) {
+      menu.classList.remove('hidden', 'flip');
+      if (menu.getBoundingClientRect().right > innerWidth - 8) menu.classList.add('flip');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+  });
+  document.addEventListener('click', (e) => { if (!(e.target as HTMLElement).closest('[data-dd]')) closeAll(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); });
+
+  let t: number;
+  q.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(() => { state.q = q.value; refresh(); }, 150); });
+  more.addEventListener('click', () => { shown += PAGE; render(); });
+  window.addEventListener('langchange', () => { buildFilters(); render(); });
+
+  getJSON<{ articles: Headline[] }>('latest.json')
+    .then((d) => {
+      items = (d.articles ?? []).map((a) => ({ ...a, topic: a.topic ?? 'general', district: a.district ?? null }));
+      fuse = new Fuse(items, { keys: ['title', 'source_name'], threshold: 0.3, ignoreLocation: true, minMatchCharLength: 2 });
+      buildFilters(); render();
+    })
+    .catch(() => {
+      list.setAttribute('aria-busy', 'false');
+      list.innerHTML = `<li class="p-5 muted">${ui('No headlines yet — the first scrape may not have run.', 'ఇంకా శీర్షికలు లేవు — మొదటి స్క్రేప్ ఇంకా జరగకపోవచ్చు.')}</li>`;
+    });
+</script>

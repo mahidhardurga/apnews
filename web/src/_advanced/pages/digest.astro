@@ -1,0 +1,39 @@
+---
+import Base from '../layouts/Base.astro';
+import T from '../components/T.astro';
+---
+<Base title="Daily digest" description="The top 10 Andhra Pradesh political stories of each day, ranked by how many outlets covered them." path="/digest/">
+  <h1 class="mb-1 text-2xl font-bold"><T en="Daily digest" te="రోజువారీ సారాంశం" /></h1>
+  <p class="mb-4 text-sm muted"><T en="Top 10 stories of the day (IST), ranked by number of outlets covering them." te="రోజులోని టాప్ 10 వార్తలు (IST), ఎక్కువ మీడియా సంస్థలు కవర్ చేసిన క్రమంలో." /></p>
+  <label class="mb-4 block max-w-xs text-sm"><span class="mb-1 block muted"><T en="Date" te="తేదీ" /></span>
+    <select id="date" class="input" disabled></select></label>
+  <div id="list" class="grid gap-3 md:grid-cols-2"></div>
+</Base>
+
+<script>
+  import { cardHTML, getJSON, dual } from '../scripts/lib';
+  import type { Card } from '../lib/types';
+
+  const sel = document.getElementById('date') as HTMLSelectElement;
+  const list = document.getElementById('list')!;
+
+  async function load(date: string) {
+    try {
+      const d = await getJSON<{ stories: Card[] }>(`digest/${date}.json`);
+      list.innerHTML = d.stories.length ? d.stories.map((c, i) => cardHTML(c, i + 1)).join('') : `<p class="muted">${dual('No stories for this day yet.', 'ఈ రోజుకు వార్తలు ఇంకా లేవు.')}</p>`;
+    } catch { list.innerHTML = `<p class="muted">${dual('Could not load this digest.', 'ఈ సారాంశం లోడ్ కాలేదు.')}</p>`; }
+    history.replaceState(null, '', `?d=${date}`);
+  }
+
+  getJSON<{ dates: string[] }>('digest/index.json')
+    .then(({ dates }) => {
+      if (!dates.length) { list.innerHTML = `<p class="muted">${dual('No digests yet.', 'ఇంకా సారాంశాలు లేవు.')}</p>`; return; }
+      const want = new URLSearchParams(location.search).get('d');
+      sel.innerHTML = dates.map((d) => `<option value="${d}">${d}</option>`).join('');
+      sel.value = want && dates.includes(want) ? want : dates[0]!;
+      sel.disabled = false;
+      sel.addEventListener('change', () => load(sel.value));
+      load(sel.value);
+    })
+    .catch(() => (list.innerHTML = `<p class="muted">${dual('No digests yet.', 'ఇంకా సారాంశాలు లేవు.')}</p>`));
+</script>

@@ -1,0 +1,29 @@
+# Keyword lists used to tag each headline with ONE topic. English words match on word boundaries
+# (short ALL-CAPS acronyms are case-sensitive); Telugu words match as substrings.
+# The URL slug (English words in the link) is matched too, which helps Telugu headlines.
+# Topic with the most distinct keyword hits wins; ties go to the order below; no hit = "general".
+# Parties and leaders (from lexicon.yaml) count as 2 hits for "politics".
+
+topics:
+  sports:
+    [cricket, IPL, kabaddi, tournament, stadium, medal, Olympic, football, hockey, badminton, tennis, wicket, T20, ODI, BCCI, athlete, sports, క్రికెట్, క్రీడ, టోర్నీ, కబడ్డీ, పతకం, ఐపీఎల్, ఒలింపిక్, బ్యాడ్మింటన్, మ్యాచ్]
+  entertainment:
+    [movie, film, actor, actress, trailer, teaser, OTT, Tollywood, box office, Bigg Boss, serial, songs, director, heroine, సినిమా, మూవీ, హీరో, హీరోయిన్, ట్రైలర్, టీజర్, ఓటీటీ, టాలీవుడ్, బిగ్‌బాస్, బిగ్ బాస్, నటి, నటుడు, చిత్రం]
+  weather:
+    [rain, rains, rainfall, cyclone, flood, floods, heatwave, weather, IMD, monsoon, storm, depression, వర్షం, వర్షాలు, వర్ష, తుపాను, వరద, వాతావరణం, ఉష్ణోగ్రత, అల్పపీడనం, ఈదురుగాలులు]
+  devotional:
+    [temple, Tirumala, TTD, Srisailam, Dasara, Navratri, Sankranti, festival, pooja, darshan, Srivari, Brahmotsavam, devotee, devotees, ఆలయం, దేవాలయం, తిరుమల, టీటీడీ, శ్రీవారి, దర్శనం, దుర్గమ్మ, దసరా, నవరాత్రి, పండుగ, భక్తులు, పూజ, బ్రహ్మోత్సవాలు, అమ్మవారు]
+  crime:
+    [murder, arrested, arrest, police, rape, theft, robbery, accident, killed, dead, suicide, fraud, scam, cheating, ganja, cyber, kidnap, assault, drown, drowned, FIR, crime, High Court, Supreme Court, court, bail, verdict, హత్య, అరెస్ట్, పోలీసు, అత్యాచారం, దొంగ, చోరీ, ప్రమాదం, మృతి, ఆత్మహత్య, మోసం, గంజాయి, సైబర్, దారుణం, కిడ్నాప్, హైకోర్టు, సుప్రీంకోర్టు, కోర్టు]
+  health:
+    [hospital, doctor, doctors, dengue, fever, health, disease, covid, medical, vaccine, ఆసుపత్రి, వైద్య, డెంగీ, జ్వరం, ఆరోగ్య]
+  education:
+    [school, college, university, students, student, exam, exams, results, admission, DSC, APPSC, EAMCET, scholarship, teacher, JEE, NEET, పాఠశాల, కాలేజీ, విశ్వవిద్యాలయం, విద్యార్థి, పరీక్ష, ఫలితాలు, స్కాలర్‌షిప్]
+  agriculture:
+    [farmer, farmers, crop, paddy, irrigation, tomato, cotton, mango, fertilizer, Rythu, రైతు, పంట, వరి, ఎరువులు, సాగు, అన్నదాత]
+  technology:
+    [phone, smartphone, battery, launch, AI, app, Google, laptop, ISRO, space, gadget, ఫోన్, స్మార్ట్‌ఫోన్, బ్యాటరీ, టెక్నాలజీ, ల్యాప్‌టాప్]
+  business:
+    [price, prices, gold, stock, market, investment, industry, jobs, startup, bank, GST, budget, company, rupee, petrol, diesel, bangaram, బంగారం, ధరలు, స్టాక్, పెట్టుబడి, పరిశ్రమ, ఉద్యోగాలు, బ్యాంక్, కంపెనీ, పెట్రోల్]
+  politics:
+    [MLA, MLC, MP, minister, Chief Minister, CM, Deputy CM, Assembly, Cabinet, opposition, alliance, election, elections, polls, nomination, mayor, municipal, civic body, local body, Governor, party, ఎమ్మెల్యే, ఎమ్మెల్సీ, ఎంపీ, మంత్రి, సీఎం, ముఖ్యమంత్రి, అసెంబ్లీ, కేబినెట్, ప్రతిపక్ష, ఎన్నికలు, ఎన్నిక, నామినేషన్, మేయర్, మున్సిపల్, పార్టీ, రాజకీయ, ప్రభుత్వం]

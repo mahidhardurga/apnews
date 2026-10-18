@@ -1,0 +1,5 @@
+# Optional: only for `python -m apnews.run --stories` (embedding-based grouping).
+# In CI install torch from the CPU wheel index first.
+-r requirements.txt
+numpy>=1.26
+sentence-transformers>=3.0,<6

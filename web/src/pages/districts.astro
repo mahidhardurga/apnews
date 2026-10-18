@@ -1,0 +1,89 @@
+---
+import Base from '../layouts/Base.astro';
+import T from '../components/T.astro';
+---
+<Base title="District map" description="Andhra Pradesh news by district: an interactive map showing where the headlines are." path="/districts/">
+  <h1 class="mb-1 text-2xl font-bold"><T en="News by district" te="జిల్లాల వారీగా వార్తలు" /></h1>
+  <p class="mb-3 text-sm muted">
+    <T en="Schematic tile map (not to scale). Darker means more recent headlines mentioning that district. Select a district to see them."
+       te="సూచనా పటం (కొలతల ప్రకారం కాదు). ముదురు రంగు అంటే ఆ జిల్లా ప్రస్తావన ఉన్న ఎక్కువ శీర్షికలు. జిల్లాను ఎంచుకోండి." />
+  </p>
+  <label class="mb-4 block max-w-xs text-sm"><span class="mb-1 block muted"><T en="Topic" te="అంశం" /></span>
+    <select id="topic" class="input"></select></label>
+  <div class="grid gap-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+    <div class="card !p-2"><svg id="map" viewBox="0 0 640 700" role="group" aria-label="Andhra Pradesh district map" class="mx-auto h-auto w-full"></svg></div>
+    <section id="panel" class="card" aria-live="polite"><p class="muted"><T en="Select a district on the map." te="పటంలో జిల్లాను ఎంచుకోండి." /></p></section>
+  </div>
+  <p class="mt-3 text-xs muted"><T en="Districts are detected from place names in the headline or link, so headlines that name no district are not on the map." te="శీర్షిక లేదా లింక్‌లోని ప్రాంతాల పేర్ల ఆధారంగా జిల్లాను గుర్తిస్తాం; జిల్లా పేరు లేని శీర్షికలు పటంలో కనిపించవు." /></p>
+</Base>
+
+<script>
+  import { dual, esc, getJSON, lang, timeAgo, ui, type Headline } from '../scripts/lib';
+  import { DISTRICT_TE, TILE_POS, TOPIC_ORDER, topicLabel } from '../lib/i18n';
+
+  const W = 74, H = 70, GAP = 4, PAD = 6;
+  const svg = document.getElementById('map') as unknown as SVGSVGElement;
+  const panel = document.getElementById('panel')!;
+  const topicSel = document.getElementById('topic') as HTMLSelectElement;
+  let items: Headline[] = [];
+  let topic = new URLSearchParams(location.search).get('topic') ?? '';
+  let selected = '';
+
+  const inScope = () => items.filter((i) => i.district && (!topic || i.topic === topic));
+  const split = (s: string) => {
+    const w = s.split(' ');
+    return w.length > 1 && s.length > 9 ? [w.slice(0, Math.ceil(w.length / 2)).join(' '), w.slice(Math.ceil(w.length / 2)).join(' ')] : [s];
+  };
+
+  function buildTopic() {
+    const te = lang() === 'te';
+    const present = new Set(items.map((i) => i.topic));
+    topicSel.innerHTML = `<option value="">${ui('All topics', 'అన్ని అంశాలు')}</option>` +
+      TOPIC_ORDER.filter((t) => present.has(t)).map((t) => `<option value="${t}"${t === topic ? ' selected' : ''}>${topicLabel(t)[te ? 1 : 0]}</option>`).join('');
+  }
+
+  function draw() {
+    const counts = new Map<string, number>();
+    inScope().forEach((i) => counts.set(i.district!, (counts.get(i.district!) ?? 0) + 1));
+    const max = Math.max(1, ...counts.values());
+    svg.innerHTML = Object.entries(TILE_POS).map(([name, pos]) => {
+      const n = counts.get(name) ?? 0;
+      const x = PAD + (pos[0] - 1) * (W + GAP), y = PAD + pos[1] * (H - 6 + GAP);
+      const t = n / max, op = n ? 0.18 + 0.82 * t : 0, light = t > 0.55;
+      const label = lang() === 'te' ? DISTRICT_TE[name] ?? name : name;
+      const lines = lang() === 'te' ? [label] : split(label);
+      const sel = selected === name;
+      return `<g class="tile" tabindex="0" role="button" data-d="${esc(name)}" aria-label="${esc(name)}: ${n}">
+        <rect x="${x}" y="${y}" width="${W}" height="${H - 6}" rx="10" fill="rgb(0 113 227 / ${op.toFixed(2)})"
+              class="stroke-[#0071e3] dark:stroke-[#2997ff] ${n ? '' : 'fill-black/[.04] dark:fill-white/10'}" stroke-width="${sel ? 3.5 : 1.2}" />
+        ${lines.map((ln, i) => `<text x="${x + W / 2}" y="${y + (H - 6) / 2 + (i - (lines.length - 1) / 2) * 11 - 2}" text-anchor="middle"
+              font-size="11" font-weight="600" fill="${light ? '#fff' : 'currentColor'}" class="pointer-events-none">${esc(ln)}</text>`).join('')}
+        <text x="${x + W / 2}" y="${y + H - 14}" text-anchor="middle" font-size="10" fill="${light ? '#fff' : 'currentColor'}" opacity=".8" class="pointer-events-none">${n}</text>
+      </g>`;
+    }).join('');
+  }
+
+  function show(name: string) {
+    selected = name;
+    draw();
+    const rows = inScope().filter((i) => i.district === name);
+    panel.innerHTML = `<h2 class="text-lg font-semibold">${dual(name, DISTRICT_TE[name] ?? name)}</h2>
+      <p class="mb-3 text-xs muted">${rows.length} ${dual('headlines', 'శీర్షికలు')}</p>
+      ${rows.length ? `<ul class="divide-y divide-black/5 dark:divide-white/10">${rows.slice(0, 40).map((i) => `
+        <li><a class="block py-2.5 no-underline hover:underline" href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">
+          <span class="block font-medium leading-snug" lang="${i.language}">${esc(i.title)} <span aria-hidden="true">↗</span></span>
+          <span class="text-xs muted">${esc(i.source_name)} · ${timeAgo(i.published)}</span></a></li>`).join('')}</ul>`
+        : `<p class="muted">${dual('No headlines for this district yet.', 'ఈ జిల్లాకు శీర్షికలు ఇంకా లేవు.')}</p>`}
+      <p class="mt-4"><a class="btn no-underline" href="/?district=${encodeURIComponent(name)}${topic ? `&topic=${topic}` : ''}">${dual('Open in the main list', 'ప్రధాన జాబితాలో చూడండి')}</a></p>`;
+  }
+
+  const pick = (e: Event) => (e.target as Element).closest('[data-d]')?.getAttribute('data-d');
+  svg.addEventListener('click', (e) => { const d = pick(e); if (d) show(d); });
+  svg.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') { const d = pick(e); if (d) { e.preventDefault(); show(d); } } });
+  topicSel.addEventListener('change', () => { topic = topicSel.value; selected ? show(selected) : draw(); });
+  window.addEventListener('langchange', () => { buildTopic(); selected ? show(selected) : draw(); });
+
+  getJSON<{ articles: Headline[] }>('latest.json')
+    .then((d) => { items = d.articles ?? []; buildTopic(); draw(); })
+    .catch(() => { panel.innerHTML = `<p class="muted">${dual('No data yet.', 'ఇంకా డేటా లేదు.')}</p>`; });
+</script>

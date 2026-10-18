@@ -1,0 +1,21 @@
+---
+import Base from '../layouts/Base.astro';
+import T from '../components/T.astro';
+import { leaders } from '../lib/data';
+const list = leaders();
+---
+<Base title="Leaders" description="Andhra Pradesh political leaders in the news over the last 7 days." path="/leaders/">
+  <h1 class="mb-1 text-2xl font-bold"><T en="Leaders in the news" te="వార్తల్లో నాయకులు" /></h1>
+  <p class="mb-4 text-sm muted"><T en="Last 7 days, by number of stories." te="గత 7 రోజులు, వార్తల సంఖ్య ఆధారంగా." /></p>
+  {list.length === 0 && <p class="muted"><T en="No data yet." te="ఇంకా డేటా లేదు." /></p>}
+  <ul class="grid gap-3 sm:grid-cols-2">
+    {list.map((l) => (
+      <li>
+        <a href={`/leader/${l.slug}/`} class="card block no-underline hover:border-accent">
+          <p class="font-semibold">{l.name}</p>
+          <p class="mt-0.5 text-sm muted">{l.count} <T en="stories" te="వార్తలు" />{l.parties.length > 0 && ` · ${l.parties.join(', ')}`}</p>
+        </a>
+      </li>
+    ))}
+  </ul>
+</Base>

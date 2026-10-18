@@ -1,0 +1,9 @@
+---
+import Base from '../layouts/Base.astro';
+import T from '../components/T.astro';
+---
+<Base title="Not found" path="/404/">
+  <h1 class="text-2xl font-bold"><T en="Page not found" te="పేజీ దొరకలేదు" /></h1>
+  <p class="mt-2 muted"><T en="This story may be older than 90 days or not published yet." te="ఈ వార్త 90 రోజుల కంటే పాతది కావచ్చు లేదా ఇంకా ప్రచురించబడలేదు." /></p>
+  <p class="mt-4"><a class="btn no-underline" href="/"><T en="Back to home" te="హోమ్‌కు వెళ్ళండి" /></a></p>
+</Base>

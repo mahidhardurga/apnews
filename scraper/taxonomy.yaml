@@ -1,0 +1,55 @@
+# Controlled vocabulary used to validate LLM tags. Edit freely.
+parties: [TDP, YSRCP, JSP, BJP, INC, CPI, "CPI(M)", BRS, Other]
+
+topics:
+  - politics        # party/leader statements, alliances, defections
+  - elections       # polls, voter lists, EC
+  - governance      # policy, government orders, administration
+  - welfare         # schemes, pensions, subsidies
+  - economy         # budget, investment, industry, jobs
+  - agriculture
+  - infrastructure  # Amaravati, Polavaram, roads, ports
+  - law-order       # police, courts, political violence
+  - education
+  - health
+  - environment
+  - other
+
+districts:
+  - Srikakulam
+  - Vizianagaram
+  - Parvathipuram Manyam
+  - Alluri Sitharama Raju
+  - Visakhapatnam
+  - Anakapalli
+  - Kakinada
+  - East Godavari
+  - Konaseema
+  - West Godavari
+  - Eluru
+  - NTR
+  - Krishna
+  - Guntur
+  - Palnadu
+  - Bapatla
+  - Prakasam
+  - Nellore
+  - Kurnool
+  - Nandyal
+  - Anantapur
+  - Sri Sathya Sai
+  - YSR Kadapa
+  - Annamayya
+  - Chittoor
+  - Tirupati
+
+# canonical leader name -> aliases (matched case-insensitively). Unknown leaders are kept as the LLM wrote them.
+leaders:
+  N. Chandrababu Naidu: [Chandrababu Naidu, Chandrababu, Naidu, CBN, Chief Minister Naidu]
+  Pawan Kalyan: [Deputy Chief Minister Pawan Kalyan, Pawan]
+  Nara Lokesh: [Lokesh, Minister Lokesh]
+  Y.S. Jagan Mohan Reddy: [Jagan Mohan Reddy, Jagan, YS Jagan, Y.S. Jagan, YSRCP chief]
+  Y.S. Sharmila: [Sharmila, YS Sharmila]
+  Daggubati Purandeswari: [Purandeswari, D. Purandeswari]
+  Narendra Modi: [Modi, Prime Minister Modi]
+  Revanth Reddy: [A. Revanth Reddy]

@@ -1,0 +1,72 @@
+---
+import Base from '../layouts/Base.astro';
+import T from '../components/T.astro';
+---
+<Base title="District map" description="Interactive map of Andhra Pradesh districts showing where the political news is." path="/districts/">
+  <h1 class="mb-1 text-2xl font-bold"><T en="News by district" te="జిల్లాల వారీగా వార్తలు" /></h1>
+  <p class="mb-4 text-sm muted">
+    <T en="Schematic tile map (not to scale): darker means more stories in the last 7 days. Select a district."
+       te="సూచనా పటం (కొలతల ప్రకారం కాదు): ముదురు రంగు అంటే గత 7 రోజుల్లో ఎక్కువ వార్తలు. జిల్లాను ఎంచుకోండి." />
+  </p>
+  <div class="grid gap-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+    <div class="card !p-2"><svg id="map" viewBox="0 0 640 700" role="group" aria-label="Andhra Pradesh district map" class="mx-auto h-auto w-full"></svg></div>
+    <section id="panel" class="card" aria-live="polite"><p class="muted"><T en="Select a district on the map." te="పటంలో జిల్లాను ఎంచుకోండి." /></p></section>
+  </div>
+</Base>
+
+<script>
+  import { dual, esc, getJSON, lang } from '../scripts/lib';
+  import { DISTRICT_TE, TILE_POS } from '../lib/i18n';
+  import type { District } from '../lib/types';
+
+  const W = 74, H = 70, GAP = 4, PAD = 6;
+  const svg = document.getElementById('map') as unknown as SVGSVGElement;
+  const panel = document.getElementById('panel')!;
+  let data: District[] = [];
+  let selected = '';
+
+  const words = (s: string) => {
+    const w = s.split(' ');
+    return w.length > 1 && s.length > 9 ? [w.slice(0, Math.ceil(w.length / 2)).join(' '), w.slice(Math.ceil(w.length / 2)).join(' ')] : [s];
+  };
+
+  function draw() {
+    const max = Math.max(1, ...data.map((d) => d.count));
+    svg.innerHTML = data.map((d) => {
+      const pos = TILE_POS[d.name];
+      if (!pos) return '';
+      const x = PAD + (pos[0] - 1) * (W + GAP), y = PAD + pos[1] * (H - 6 + GAP);
+      const t = d.count / max, op = d.count ? 0.18 + 0.82 * t : 0;
+      const light = t > 0.55;
+      const label = lang() === 'te' ? DISTRICT_TE[d.name] ?? d.name : d.name;
+      const lines = lang() === 'te' ? [label] : words(label);
+      return `<g class="tile" tabindex="0" role="button" data-d="${esc(d.name)}" aria-label="${esc(d.name)}: ${d.count}">
+        <rect x="${x}" y="${y}" width="${W}" height="${H - 6}" rx="10" fill="rgb(67 56 202 / ${op.toFixed(2)})"
+              class="${selected === d.name ? 'tile-sel' : ''} stroke-indigo-700 dark:stroke-indigo-300 ${d.count ? '' : 'fill-slate-100 dark:fill-slate-800'}" stroke-width="${selected === d.name ? 3.5 : 1.2}" />
+        ${lines.map((ln, i) => `<text x="${x + W / 2}" y="${y + (H - 6) / 2 + (i - (lines.length - 1) / 2) * 11 - 2}" text-anchor="middle"
+              font-size="11" font-weight="600" fill="${light ? '#fff' : 'currentColor'}" class="pointer-events-none">${esc(ln)}</text>`).join('')}
+        <text x="${x + W / 2}" y="${y + H - 14}" text-anchor="middle" font-size="10" fill="${light ? '#fff' : 'currentColor'}" opacity=".8" class="pointer-events-none">${d.count}</text>
+      </g>`;
+    }).join('');
+  }
+
+  function show(name: string) {
+    selected = name;
+    const d = data.find((x) => x.name === name);
+    draw();
+    if (!d) return;
+    panel.innerHTML = `<h2 class="text-lg font-semibold">${dual(d.name, DISTRICT_TE[d.name] ?? d.name)}</h2>
+      <p class="mb-3 text-xs muted">${d.count} ${dual('stories in the last 7 days', 'గత 7 రోజుల్లో వార్తలు')}</p>
+      ${d.stories.length ? `<ul class="space-y-2">${d.stories.map((s) => `<li><a class="font-medium no-underline hover:underline" href="/story/${s.id}/">${dual(s.headline_en, s.headline_te)}</a></li>`).join('')}</ul>`
+        : `<p class="muted">${dual('No tagged stories.', 'ట్యాగ్ చేసిన వార్తలు లేవు.')}</p>`}
+      <p class="mt-4"><a class="btn no-underline" href="/?district=${encodeURIComponent(d.name)}">${dual('Open in feed', 'ఫీడ్‌లో చూడండి')}</a></p>`;
+  }
+
+  svg.addEventListener('click', (e) => { const g = (e.target as Element).closest('[data-d]'); if (g) show(g.getAttribute('data-d')!); });
+  svg.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { const g = (e.target as Element).closest('[data-d]'); if (g) { e.preventDefault(); show(g.getAttribute('data-d')!); } } });
+  window.addEventListener('langchange', () => (selected ? show(selected) : draw()));
+
+  getJSON<{ districts: District[] }>('districts.json')
+    .then((d) => { data = d.districts; draw(); })
+    .catch(() => { panel.innerHTML = '<p class="muted">No district data yet.</p>'; });
+</script>
