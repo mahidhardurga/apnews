@@ -28,7 +28,7 @@ web/                           Astro + Tailwind static site (output: static)
 
 1. Create a **public** GitHub repo and push this folder to `main`.
 2. **Actions permissions:** Settings → Actions → General → Workflow permissions → *Read and write permissions*. (The workflow also declares `contents: write`.)
-3. No secrets are needed.
+3. **Optional secret for AI topic briefings:** repo → Settings → Secrets and variables → Actions → *New repository secret* → name `OPENROUTER_API_KEY`, value = your OpenRouter key. Without it everything else works and the briefings are simply absent. (Terminal alternative: `gh secret set OPENROUTER_API_KEY` and paste the key at the prompt.)
 4. Run it once: Actions → *scrape* → *Run workflow*. Afterwards `web/public/data/latest.json` appears in the repo.
 
 ### Enable GitHub Pages and the custom domain
@@ -80,13 +80,16 @@ python -m apnews.run --stories      # advanced: grouping + tags (pip install -r 
 2. Dedupe by canonical URL and by near-identical title (same language).
 3. Write `web/public/data/latest.json` (newest 2000 headlines, i.e. the last 7 days), `articles.json` (7-day pool), `archive/YYYY-MM.json` and `state.json`.
 
-No ML, no LLM, no secrets. A run takes seconds. Only what outlets still list in their feeds can be collected, so the 7 days fill up gradually after launch (history is not back-filled).
+4. **Optional AI topic briefings** (`apnews/summarize.py`): if `OPENROUTER_API_KEY` is set, the last 24h of headlines per topic are summarised in English and Telugu through OpenRouter and written to `topic_summaries.json`. A topic is re-summarised only with >=5 new headlines and >=3h since the last call (so ~8 calls/topic/day at most); topics with <3 headlines get no summary; any failure keeps the previous summaries and never fails the scrape. Model: `google/gemini-2.5-flash-lite` with fallback `google/gemma-4-26b-a4b-it`; change with the repository variable `OPENROUTER_MODEL` (Settings → Secrets and variables → Actions → Variables) or env `OPENROUTER_FALLBACK_MODELS`. Run locally with `OPENROUTER_API_KEY=... python -m apnews.run`; `--skip-summaries` disables it.
+
+Without the key there is no ML and no LLM, and no secrets are needed. A run takes seconds. Only what outlets still list in their feeds can be collected, so the 7 days fill up gradually after launch (history is not back-filled).
 
 ## Data files (`web/public/data/`)
 
 | File | Contents |
 |---|---|
 | `latest.json` | newest 2000 headlines (last 7 days): `id, title, url, source, source_name, language, published, topic, district` |
+| `topic_summaries.json` | optional AI briefing per topic (EN + TE), see above |
 | `articles.json` | rolling 7-day pool (internal) |
 | `archive/YYYY-MM.json` | every headline seen, by month |
 | `state.json` | seen IDs (14 days) and the last run's per-source report |

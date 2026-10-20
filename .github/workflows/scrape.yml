@@ -32,7 +32,11 @@ jobs:
 
       - name: Scrape
         working-directory: scraper
-        # Headlines only: no ML, no API keys, no secrets.
+        env:
+          # Optional. Without the secret the site works exactly as before, just with no AI topic briefings.
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          # Optional repository variable (Settings > Secrets and variables > Actions > Variables).
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
         run: python -m apnews.run
 
       - name: Commit data

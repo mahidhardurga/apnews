@@ -44,6 +44,7 @@ def main(argv=None) -> int:
     ap.add_argument("--only", help="comma-separated source ids")
     ap.add_argument("--data-dir", type=Path, default=DEFAULT_DATA)
     ap.add_argument("--stories", action="store_true", help="also group into stories + enrich (needs requirements-stories.txt)")
+    ap.add_argument("--skip-summaries", action="store_true", help="do not call the AI summariser even if a key is set")
     ap.add_argument("--dry-run", action="store_true", help="fetch and report, write nothing")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -84,6 +85,12 @@ def main(argv=None) -> int:
             from .rules import Enricher
         enricher = Enricher()
         log.info("stories: %s", stories.process(args.data_dir, saved["pool"], enricher))
+    if not args.skip_summaries and not args.stories:
+        try:  # AI briefings are a bonus: they must never fail the scrape
+            from . import summarize
+            log.info("topic summaries: %s", summarize.run(args.data_dir, saved["pool"]))
+        except Exception as e:
+            log.error("topic summaries crashed: %s", e)
     # Fail the job only if *every* source failed (so the Action surfaces total outages).
     return 0 if any(r["ok"] for r in report.values()) else 1
 
