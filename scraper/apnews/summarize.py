@@ -3,8 +3,11 @@
 For each topic (politics, crime, sports, ...) it summarises the headlines of the last 24 hours in
 English and Telugu and writes web/public/data/topic_summaries.json.
 
-Cost control: a topic is re-summarised only when it has enough new headlines (MIN_NEW) and at least
-MIN_INTERVAL_HOURS have passed, so a busy day costs ~8 calls per topic at most.
+Cost/time control: a topic is re-summarised only when it has enough new headlines (MIN_NEW) and at
+least MIN_INTERVAL_HOURS have passed. Every call has a hard wall-clock deadline and the whole step
+has a time budget, because free models can queue for minutes (OpenRouter keeps the connection open
+with filler bytes meanwhile, so ordinary read timeouts never fire). Results are saved after every
+topic; topics that did not fit in the budget are simply picked up by the next run.
 Nothing here is required for the site: without OPENROUTER_API_KEY it does nothing, and any failure
 leaves the previous summaries in place.
 
@@ -31,7 +34,10 @@ URL = "https://openrouter.ai/api/v1/chat/completions"
 # fallbacks in order if the first model fails or is rate limited. Override with OPENROUTER_MODEL.
 DEFAULT_MODEL = "google/gemma-4-31b-it:free"
 DEFAULT_FALLBACKS = "google/gemma-4-26b-a4b-it:free,openrouter/free"
-CALL_GAP_SECONDS = 3       # stay well under the free per-minute limit
+
+CALL_DEADLINE_SECONDS = 70   # hard limit for one API call
+TIME_BUDGET_SECONDS = 270    # hard limit for the whole summarising step per run
+CALL_GAP_SECONDS = 3         # stay well under the free per-minute limit
 
 WINDOW_HOURS = 24
 MAX_HEADLINES = 40
@@ -92,6 +98,25 @@ def parse_reply(text: str) -> dict:
     return out
 
 
+def _post(session: requests.Session, key: str, body: dict) -> tuple[int, str]:
+    """POST with a hard wall-clock deadline (read timeouts alone are defeated by keep-alive filler)."""
+    started = time.monotonic()
+    r = session.post(URL, json=body, stream=True, timeout=(10, 30), headers={
+        "Authorization": f"Bearer {key}",
+        "HTTP-Referer": "https://apnews.mahidhardurga.in",  # optional attribution headers
+        "X-Title": "AP News",
+    })
+    try:
+        chunks: list[bytes] = []
+        for chunk in r.iter_content(8192):
+            chunks.append(chunk)
+            if time.monotonic() - started > CALL_DEADLINE_SECONDS:
+                raise TimeoutError(f"no complete reply within {CALL_DEADLINE_SECONDS}s")
+        return r.status_code, b"".join(chunks).decode("utf-8", "replace")
+    finally:
+        r.close()
+
+
 def call_openrouter(session: requests.Session, key: str, model: str, fallbacks: list[str],
                     topic: str, headlines: list[dict]) -> tuple[dict, str]:
     lines = [f"Topic: {TOPIC_NAMES.get(topic, topic)}", "", "HEADLINES:"]
@@ -108,23 +133,29 @@ def call_openrouter(session: requests.Session, key: str, model: str, fallbacks: 
         body["models"] = [model, *fallbacks]  # OpenRouter tries these in order if the first fails
     last: Exception | None = None
     for attempt in range(2):
-        r = session.post(URL, json=body, timeout=90, headers={
-            "Authorization": f"Bearer {key}",
-            "HTTP-Referer": "https://apnews.mahidhardurga.in",  # optional attribution headers
-            "X-Title": "AP News",
-        })
-        if r.status_code in (401, 402, 403, 429):
-            raise AbortRun(f"OpenRouter HTTP {r.status_code}: {r.text[:200]}")
+        started = time.monotonic()
         try:
-            r.raise_for_status()
-            data = r.json()
+            status, text = _post(session, key, body)
+            if status in (401, 402, 403, 429):
+                raise AbortRun(f"OpenRouter HTTP {status}: {text.strip()[:200]}")
+            if status >= 400:
+                raise ValueError(f"HTTP {status}: {text.strip()[:200]}")
+            data = json.loads(text[text.find("{"):])  # skip any keep-alive filler before the JSON
             if "error" in data:
                 raise ValueError(f"API error: {str(data['error'])[:200]}")
-            text = data["choices"][0]["message"]["content"] or ""
-            return parse_reply(text), data.get("model") or model
-        except (requests.RequestException, ValueError, KeyError, IndexError, json.JSONDecodeError) as e:
+            content = data["choices"][0]["message"]["content"] or ""
+            used = data.get("model") or model
+            summary = parse_reply(content)
+            log.info("%s summarised by %s in %.1fs", topic, used, time.monotonic() - started)
+            return summary, used
+        except AbortRun:
+            raise
+        except TimeoutError as e:  # the model queue is stuck: do not retry, move on
+            raise ValueError(str(e))
+        except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as e:
             last = e
-            log.warning("OpenRouter attempt %d for %s failed: %s", attempt + 1, topic, e)
+            log.warning("OpenRouter attempt %d for %s failed after %.1fs: %s", attempt + 1, topic,
+                        time.monotonic() - started, e)
     raise ValueError(f"unusable reply: {last}")
 
 
@@ -147,8 +178,14 @@ def run(data_dir: Path, pool: list[dict], session: requests.Session | None = Non
         t = a.get("topic")
         if t in TOPIC_NAMES and a["published"] >= since and len(by_topic.setdefault(t, [])) < MAX_HEADLINES:
             by_topic[t].append(a)
+    for t in [t for t in topics if t not in by_topic]:  # no news at all in the window
+        topics.pop(t)
 
-    done, failed, kept = [], [], 0
+    def save() -> None:
+        write_json(path, {"generated_at": iso(now), "topics": topics})
+
+    t0 = time.monotonic()
+    done, failed, kept, skipped = [], [], 0, []
     try:
         for topic, items in by_topic.items():
             if len(items) < MIN_HEADLINES:
@@ -165,6 +202,9 @@ def run(data_dir: Path, pool: list[dict], session: requests.Session | None = Non
                     prev["headline_count"] = len(items)
                     kept += 1
                     continue
+            if time.monotonic() - t0 > TIME_BUDGET_SECONDS:
+                skipped.append(topic)  # picked up by the next run
+                continue
             if done or failed:
                 time.sleep(CALL_GAP_SECONDS)
             try:
@@ -175,11 +215,10 @@ def run(data_dir: Path, pool: list[dict], session: requests.Session | None = Non
                 continue
             topics[topic] = {**summary, "headline_count": len(items), "updated": iso(now), "ids": ids, "model": used}
             done.append(topic)
+            save()  # keep progress even if a later topic hangs or the job is cut off
     except AbortRun as e:
         log.error("topic summaries aborted: %s", e)
 
-    for t in [t for t in topics if t not in by_topic]:  # topic had no news in the window at all
-        topics.pop(t)
-
-    write_json(path, {"generated_at": iso(now), "topics": topics})
-    return {"summarised": done, "failed": failed, "unchanged": kept}
+    save()
+    return {"summarised": done, "failed": failed, "unchanged": kept, "deferred": skipped,
+            "seconds": round(time.monotonic() - t0)}
