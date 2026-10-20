@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -26,8 +27,11 @@ from .util import iso, utcnow
 log = logging.getLogger(__name__)
 
 URL = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_MODEL = "google/gemini-2.5-flash-lite"
-DEFAULT_FALLBACKS = "google/gemma-4-26b-a4b-it"
+# Free models (cost $0, but rate limited: ~20 requests/min and a daily cap). OpenRouter tries the
+# fallbacks in order if the first model fails or is rate limited. Override with OPENROUTER_MODEL.
+DEFAULT_MODEL = "google/gemma-4-31b-it:free"
+DEFAULT_FALLBACKS = "google/gemma-4-26b-a4b-it:free,openrouter/free"
+CALL_GAP_SECONDS = 3       # stay well under the free per-minute limit
 
 WINDOW_HOURS = 24
 MAX_HEADLINES = 40
@@ -97,7 +101,7 @@ def call_openrouter(session: requests.Session, key: str, model: str, fallbacks: 
         "model": model,
         "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": "\n".join(lines)}],
         "temperature": 0.2,
-        "max_tokens": 900,
+        "max_tokens": 1500,  # headroom in case the model spends tokens on reasoning
         "response_format": {"type": "json_object"},
     }
     if fallbacks:
@@ -161,6 +165,8 @@ def run(data_dir: Path, pool: list[dict], session: requests.Session | None = Non
                     prev["headline_count"] = len(items)
                     kept += 1
                     continue
+            if done or failed:
+                time.sleep(CALL_GAP_SECONDS)
             try:
                 summary, used = call_openrouter(session, key, model, fallbacks, topic, items)
             except ValueError as e:
