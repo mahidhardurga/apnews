@@ -143,9 +143,14 @@ def call_openrouter(session: requests.Session, key: str, model: str, fallbacks: 
             data = json.loads(text[text.find("{"):])  # skip any keep-alive filler before the JSON
             if "error" in data:
                 raise ValueError(f"API error: {str(data['error'])[:200]}")
-            content = data["choices"][0]["message"]["content"] or ""
+            choice = data["choices"][0]
+            content = choice["message"].get("content") or ""
             used = data.get("model") or model
-            summary = parse_reply(content)
+            try:
+                summary = parse_reply(content)
+            except ValueError as e:  # include what the model actually said, to make failures diagnosable
+                raise ValueError(f"{e} [model={used} finish={choice.get('finish_reason')} "
+                                 f"len={len(content)} head={content[:140]!r}]") from None
             log.info("%s summarised by %s in %.1fs", topic, used, time.monotonic() - started)
             return summary, used
         except AbortRun:
