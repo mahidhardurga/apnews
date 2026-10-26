@@ -3,22 +3,30 @@ import Base from '../layouts/Base.astro';
 import T from '../components/T.astro';
 ---
 <Base>
-  <h1 class="mb-1 text-3xl font-bold tracking-tight sm:text-4xl">
-    <T en="Andhra Pradesh news" te="ఆంధ్రప్రదేశ్ వార్తలు" />
-  </h1>
-  <p class="mb-5 muted">
-    <T en="Headlines from many outlets. Tap one to read it on the original site." te="వివిధ మీడియా సంస్థల శీర్షికలు. నొక్కితే అసలు వెబ్‌సైట్‌లో కథనం తెరుచుకుంటుంది." />
-  </p>
+  <section class="pb-2 pt-3 sm:pt-6">
+    <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl">
+      <span class="grad-text"><T en="Andhra Pradesh news" te="ఆంధ్రప్రదేశ్ వార్తలు" /></span>
+    </h1>
+    <p class="mt-2 max-w-2xl text-[15px] muted sm:text-base">
+      <T en="Headlines from many outlets in one place. Tap one to read it on the original site." te="వివిధ మీడియా సంస్థల శీర్షికలు ఒకే చోట. నొక్కితే అసలు వెబ్‌సైట్‌లో కథనం తెరుచుకుంటుంది." />
+    </p>
+    <div id="stats" class="mt-4 flex flex-wrap gap-2" aria-live="polite"></div>
+  </section>
 
-  <input id="q" type="search" class="input mb-3" autocomplete="off" />
-  <div id="filters" class="mb-2 flex flex-wrap items-center gap-2"></div>
+  <div class="z-10 -mx-4 mb-3 md:sticky md:top-[5.4rem] border-b border-black/5 bg-[#f5f5f7]/85 px-4 pb-3 pt-3 backdrop-blur-xl dark:border-white/10 dark:bg-black/75">
+    <div class="search-wrap">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="search" class="input" autocomplete="off" />
+    </div>
+    <div id="filters" class="mt-2.5 flex flex-wrap items-center gap-2"></div>
+  </div>
   <p id="count" class="mb-3 px-1 text-xs muted" aria-live="polite"></p>
   <div id="briefing"></div>
 
-  <ul id="list" class="divide-y divide-black/5 overflow-hidden rounded-2xl border border-black/5 bg-white dark:divide-white/10 dark:border-white/10 dark:bg-[#1c1c1e]" aria-busy="true">
-    <li class="p-4 muted"><T en="Loading headlines…" te="శీర్షికలు లోడ్ అవుతున్నాయి…" /></li>
-  </ul>
-  <div class="mt-5 text-center"><button id="more" type="button" class="btn" hidden><T en="Load more" te="మరిన్ని" /></button></div>
+  <div id="list" class="grid gap-3 md:grid-cols-2" aria-busy="true">
+    {[0, 1, 2, 3, 4, 5].map(() => <div class="skeleton"></div>)}
+  </div>
+  <div class="mt-6 text-center"><button id="more" type="button" class="btn !px-5 !py-2" hidden><T en="Load more" te="మరిన్ని" /></button></div>
 </Base>
 
 <script>
@@ -27,6 +35,9 @@ import T from '../components/T.astro';
   import { districtLabel, topicLabel, TOPIC_ORDER } from '../lib/i18n';
 
   const PAGE = 40;
+  const hue = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+  const shortName = (n: string) => n.replace(/\s*\(.*?\)\s*/g, ' ').replace(/^The /, '').trim();
+  const initials = (n: string) => shortName(n).split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const list = $('list'), count = $('count'), more = $<HTMLButtonElement>('more'), q = $<HTMLInputElement>('q'), filtersEl = $('filters');
 
@@ -54,13 +65,13 @@ import T from '../components/T.astro';
       `${s.headline_count} తాజా శీర్షికల ఆధారంగా AI రాసింది. పొరపాట్లు ఉండవచ్చు.`);
     const one = state.topic ? summaries[state.topic] : undefined;
     if (state.topic && one) {
-      briefing.innerHTML = `<section class="card mb-4">
+      briefing.innerHTML = `<section class="briefing-card mb-4">
         <p class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-accent dark:text-accent-dark">${sparkle}
           ${dual('AI summary', 'AI సారాంశం')} · ${dual(...topicLabel(state.topic))}</p>
         <p class="leading-relaxed" lang="${lang()}">${dual(one.summary_en, one.summary_te)}</p>
         <p class="mt-2 text-xs muted">${note(one)} · ${timeAgo(one.updated)}</p></section>`;
     } else if (!state.topic) {
-      briefing.innerHTML = `<details class="card mb-4" ${briefOpen ? 'open' : ''}>
+      briefing.innerHTML = `<details class="briefing-card mb-4" ${briefOpen ? 'open' : ''}>
         <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold">
           <span class="flex items-center gap-1.5">${sparkle} ${dual('Topic briefings', 'అంశాల సారాంశాలు')}
             <span class="text-xs font-normal muted">${dual('AI', 'AI')}</span></span>${chevron}</summary>
@@ -133,18 +144,34 @@ import T from '../components/T.astro';
     count.textContent = ui(`${res.length} headlines`, `${res.length} శీర్షికలు`);
     list.setAttribute('aria-busy', 'false');
     list.innerHTML = res.length
-      ? res.slice(0, shown).map((i) => `
-        <li>
-          <a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer" class="block px-4 py-3.5 no-underline hover:bg-black/[.03] dark:hover:bg-white/5">
-            <span class="block text-[17px] font-medium leading-snug" lang="${i.language}">${esc(i.title)}</span>
-            <span class="mt-1 block text-xs muted">${esc(i.source_name)} · ${timeAgo(i.published)}${i.topic !== 'general' ? ` · ${dual(...topicLabel(i.topic))}` : ''}${i.district ? ` · ${dual(...districtLabel(i.district))}` : ''}</span>
-          </a>
-        </li>`).join('')
-      : `<li class="p-5 muted">${ui('No headlines match.', 'సరిపోయే శీర్షికలు లేవు.')}</li>`;
+      ? res.slice(0, shown).map((i, n) => `
+        <a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer" class="news-card t-${i.topic}" style="animation-delay:${Math.min(n, 12) * 25}ms">
+          <span class="block text-[17px] font-semibold leading-snug" lang="${i.language}">${esc(i.title)}</span>
+          <span class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs muted">
+            <span class="avatar" style="--h:${hue(i.source)}" aria-hidden="true">${initials(i.source_name)}</span>
+            <span class="font-medium text-[#3a3a3c] dark:text-[#d1d1d6]">${esc(shortName(i.source_name))}</span>
+            <span aria-hidden="true">·</span><span>${timeAgo(i.published)}</span>
+            ${i.topic !== 'general' ? `<span class="tag">${dual(...topicLabel(i.topic))}</span>` : ''}
+            ${i.district ? `<span class="tag-plain">${dual(...districtLabel(i.district))}</span>` : ''}
+            <span class="go ml-auto text-base" aria-hidden="true">↗</span>
+          </span>
+        </a>`).join('')
+      : `<p class="card muted md:col-span-2">${ui('No headlines match.', 'సరిపోయే శీర్షికలు లేవు.')}</p>`;
     more.hidden = res.length <= shown;
     const out = new URLSearchParams();
     (Object.keys(state) as Key[]).forEach((k) => state[k].trim() && out.set(k, state[k]));
     history.replaceState(null, '', out.size ? `?${out}` : location.pathname);
+  }
+
+  function renderStats() {
+    const stats = $('stats');
+    const outlets = new Set(items.map((i) => i.source)).size;
+    const newest = items.reduce((m, i) => (i.published > m ? i.published : m), '');
+    const chip = (html: string) => `<span class="stat-chip">${html}</span>`;
+    stats.innerHTML = chip(`<span class="live-dot"></span>${dual('Live', 'లైవ్')}`) +
+      chip(`<b>${new Intl.NumberFormat('en-IN').format(items.length)}</b> ${dual('headlines', 'శీర్షికలు')}`) +
+      chip(`<b>${outlets}</b> ${dual('outlets', 'మీడియా సంస్థలు')}`) +
+      (newest ? chip(`${dual('Updated', 'నవీకరణ')} ${timeAgo(newest)}`) : '');
   }
 
   const refresh = () => { shown = PAGE; buildFilters(); render(); };
@@ -176,7 +203,7 @@ import T from '../components/T.astro';
   let t: number;
   q.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(() => { state.q = q.value; refresh(); }, 150); });
   more.addEventListener('click', () => { shown += PAGE; render(); });
-  window.addEventListener('langchange', () => { buildFilters(); render(); });
+  window.addEventListener('langchange', () => { buildFilters(); render(); renderStats(); });
 
   getJSON<{ topics?: Record<string, TopicSummary> }>('topic_summaries.json')
     .then((d) => { summaries = d.topics ?? {}; renderBriefing(); })
@@ -186,10 +213,10 @@ import T from '../components/T.astro';
     .then((d) => {
       items = (d.articles ?? []).map((a) => ({ ...a, topic: a.topic ?? 'general', district: a.district ?? null }));
       fuse = new Fuse(items, { keys: ['title', 'source_name'], threshold: 0.3, ignoreLocation: true, minMatchCharLength: 2 });
-      buildFilters(); render();
+      buildFilters(); render(); renderStats();
     })
     .catch(() => {
       list.setAttribute('aria-busy', 'false');
-      list.innerHTML = `<li class="p-5 muted">${ui('No headlines yet — the first scrape may not have run.', 'ఇంకా శీర్షికలు లేవు — మొదటి స్క్రేప్ ఇంకా జరగకపోవచ్చు.')}</li>`;
+      list.innerHTML = `<p class="card muted md:col-span-2">${ui('No headlines yet — the first scrape may not have run.', 'ఇంకా శీర్షికలు లేవు — మొదటి స్క్రేప్ ఇంకా జరగకపోవచ్చు.')}</p>`;
     });
 </script>
