@@ -20,20 +20,20 @@ import T from '../components/T.astro';
     <div id="legend" class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs muted"></div>
   </div>
 
-  <div class="grid gap-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-    <div class="map-card"><svg id="map" viewBox="0 0 640 700" role="group" aria-label="Andhra Pradesh district map" class="mx-auto h-auto w-full"></svg></div>
-    <section id="panel" class="card md:max-h-[44rem] md:overflow-auto" aria-live="polite">
+  <div class="grid gap-4 lg:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
+    <div class="map-card overflow-x-auto"><svg id="map" viewBox="0 0 748 536" role="group" aria-label="Andhra Pradesh district map" class="mx-auto h-auto w-full min-w-[620px] sm:min-w-0"></svg></div>
+    <section id="panel" class="card lg:max-h-[44rem] lg:overflow-auto" aria-live="polite">
       <p class="muted"><T en="Select a district on the map." te="పటంలో జిల్లాను ఎంచుకోండి." /></p>
     </section>
   </div>
-  <p class="mt-4 text-xs muted"><T en="Schematic map, not to scale. Districts are detected from place names in the headline or link, so headlines that name no district are not shown here." te="సూచనా పటం, కొలతల ప్రకారం కాదు. శీర్షిక లేదా లింక్‌లోని ప్రాంతాల పేర్ల ఆధారంగా జిల్లాను గుర్తిస్తాం; జిల్లా పేరు లేని శీర్షికలు ఇక్కడ కనిపించవు." /></p>
+  <p class="mt-4 text-xs muted"><T en="Simplified map: borders are indicative, not official. Districts are detected from place names in the headline or link, so headlines that name no district are not shown here. Boundaries: udit-001/india-maps-data (community-curated from public sources)." te="సరళీకృత పటం: సరిహద్దులు సూచనాత్మకం, అధికారికం కావు. శీర్షిక లేదా లింక్‌లోని ప్రాంతాల పేర్ల ఆధారంగా జిల్లాను గుర్తిస్తాం; జిల్లా పేరు లేని శీర్షికలు ఇక్కడ కనిపించవు. సరిహద్దుల మూలం: udit-001/india-maps-data (ప్రజా వనరుల నుండి సేకరించినది)." /></p>
 </Base>
 
 <script>
   import { dual, esc, getJSON, lang, timeAgo, ui, type Headline } from '../scripts/lib';
-  import { DISTRICT_TE, TILE_POS, TOPIC_COLOR, TOPIC_ORDER, topicLabel } from '../lib/i18n';
+  import { DISTRICT_TE, TOPIC_COLOR, TOPIC_ORDER, topicLabel } from '../lib/i18n';
+  import { AP_DISTRICTS, AP_MAP_SIZE } from '../lib/ap-map';
 
-  const W = 74, H = 70, GAP = 4, PAD = 6;
   const $ = <T extends HTMLElement | SVGElement>(id: string) => document.getElementById(id) as unknown as T;
   const svg = $<SVGSVGElement>('map'), panel = $('panel'), topicSel = $<HTMLSelectElement>('topic'), legend = $('legend'), statsEl = $('stats');
   let items: Headline[] = [];
@@ -88,28 +88,62 @@ import T from '../components/T.astro';
       .map((t) => `<span class="inline-flex items-center gap-1.5" style="--tc:${color(t)}"><span class="legend-dot"></span>${dual(...topicLabel(t))}</span>`).join('');
   }
 
+  const MARGIN = 120; // room on the right for callout labels of districts too small to hold their name
+  const rightEdge = (d: string) => {
+    let m = 0;
+    for (const [, x] of d.matchAll(/(\d+\.\d) (\d+\.\d)/g)) m = Math.max(m, Number(x));
+    return m;
+  };
+  const edges = Object.fromEntries(Object.entries(AP_DISTRICTS).map(([k, v]) => [k, rightEdge(v.d)]));
+
   function draw() {
     const sum = summarise();
     const max = Math.max(1, ...[...sum.values()].map((v) => v.n));
     drawStats(sum);
     drawLegend(sum);
-    svg.innerHTML = Object.entries(TILE_POS).map(([name, pos]) => {
+    const te = lang() === 'te';
+    svg.setAttribute('viewBox', `0 0 ${AP_MAP_SIZE.w + MARGIN} ${AP_MAP_SIZE.h}`);
+    const shapes: string[] = [], labels: string[] = [];
+    const callouts: { name: string; label: string; n: number; x: number; y: number; edge: number }[] = [];
+    // paint the selected district last so its outline is not covered by neighbours
+    const order = Object.keys(AP_DISTRICTS).sort((a, b) => Number(a === selected) - Number(b === selected));
+    for (const name of order) {
+      const g = AP_DISTRICTS[name]!;
       const info = sum.get(name);
       const n = info?.n ?? 0;
-      const x = PAD + (pos[0] - 1) * (W + GAP), y = PAD + pos[1] * (H - 6 + GAP);
       const c = color(info?.top ?? 'general');
       const t = n / max, strong = t > 0.5;
-      const label = lang() === 'te' ? DISTRICT_TE[name] ?? name : name;
-      const lines = lang() === 'te' ? [label] : split(label);
-      const fill = n ? `fill="${c}" fill-opacity="${(0.2 + 0.8 * t).toFixed(2)}" stroke="${c}" stroke-width="1.4"`
-                     : `fill="currentColor" fill-opacity=".04" stroke="currentColor" stroke-opacity=".18" stroke-width="1" stroke-dasharray="4 3"`;
-      return `<g class="tile${selected === name ? ' tile-sel' : ''}" tabindex="0" role="button" data-d="${esc(name)}" aria-label="${esc(name)}: ${n}">
-        <rect x="${x}" y="${y}" width="${W}" height="${H - 6}" rx="12" ${fill} />
-        ${lines.map((ln, i) => `<text x="${x + W / 2}" y="${y + (H - 6) / 2 + (i - (lines.length - 1) / 2) * 11 - 2}" text-anchor="middle"
-              font-size="11" font-weight="650" fill="${strong ? '#fff' : 'currentColor'}" class="pointer-events-none">${esc(ln)}</text>`).join('')}
-        <text x="${x + W / 2}" y="${y + H - 14}" text-anchor="middle" font-size="10" font-weight="600" fill="${strong ? '#fff' : 'currentColor'}" opacity="${n ? '.85' : '.4'}" class="pointer-events-none">${n}</text>
-      </g>`;
+      const fill = n ? `fill="${c}" fill-opacity="${(0.22 + 0.78 * t).toFixed(2)}"` : `fill="currentColor" fill-opacity=".05"`;
+      const label = te ? DISTRICT_TE[name] ?? name : name;
+      shapes.push(`<path class="dist${selected === name ? ' dist-sel' : ''}" tabindex="0" role="button" data-d="${esc(name)}" aria-label="${esc(name)}: ${n}"
+        d="${g.d}" fill-rule="evenodd" ${fill}><title>${esc(name)}: ${n}</title></path>`);
+      if (g.r < 14) { // too small for its name: label it in the sea with a leader line
+        callouts.push({ name, label, n, x: g.x, y: g.y, edge: edges[name]! });
+        labels.push(`<circle cx="${g.x}" cy="${g.y}" r="1.9" fill="${strong ? '#fff' : 'currentColor'}" class="dist-label" />`);
+        continue;
+      }
+      const fs = Math.max(6, Math.min(11, g.r * 0.5));
+      const words = label.split(' ');
+      const lines = te || words.length === 1 || label.length <= 9 ? [label]
+        : [words.slice(0, Math.ceil(words.length / 2)).join(' '), words.slice(Math.ceil(words.length / 2)).join(' ')];
+      const ink = strong ? '#fff' : 'currentColor';
+      const total = lines.length + 1, lh = fs * 1.15, y0 = g.y - ((total - 1) * lh) / 2;
+      labels.push(`<g class="dist-label" fill="${ink}" text-anchor="middle">
+        ${lines.map((ln, i) => `<text x="${g.x}" y="${(y0 + i * lh + fs * 0.35).toFixed(1)}" font-size="${fs.toFixed(1)}" font-weight="650">${esc(ln)}</text>`).join('')}
+        <text x="${g.x}" y="${(y0 + lines.length * lh + fs * 0.35).toFixed(1)}" font-size="${(fs * 0.95).toFixed(1)}" font-weight="700" opacity="${n ? '.9' : '.45'}">${n}</text></g>`);
+    }
+    // callouts: keep them in vertical order with a minimum gap so they never overlap
+    callouts.sort((a, b) => a.y - b.y);
+    let prev = -Infinity;
+    const placed = callouts.map((c) => { prev = Math.max(c.y, prev + 15); return { ...c, ly: prev }; });
+    const over = (placed.at(-1)?.ly ?? 0) - (AP_MAP_SIZE.h - 10);
+    if (over > 0) placed.forEach((c) => (c.ly -= over));
+    const call = placed.map((c) => {
+      const tx = c.edge + 14;
+      return `<g class="callout"><line x1="${c.x}" y1="${c.y}" x2="${tx - 3}" y2="${(c.ly - 3).toFixed(1)}" stroke="currentColor" stroke-opacity=".4" stroke-width=".8" stroke-dasharray="2 2" />
+        <text x="${tx}" y="${c.ly.toFixed(1)}" font-size="10" font-weight="600" fill="currentColor">${esc(c.label)} <tspan font-weight="800" fill-opacity=".75">${c.n}</tspan></text></g>`;
     }).join('');
+    svg.innerHTML = `<text x="${AP_MAP_SIZE.w + MARGIN - 16}" y="${AP_MAP_SIZE.h - 16}" text-anchor="end" font-size="12" font-style="italic" fill="currentColor" opacity=".28">${te ? 'బంగాళాఖాతం' : 'Bay of Bengal'}</text>${shapes.join('')}${labels.join('')}<g class="dist-label" style="paint-order:normal;stroke:none">${call}</g>`;
   }
 
   function show(name: string) {

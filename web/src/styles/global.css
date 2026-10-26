@@ -177,9 +177,10 @@ html.dark .map-card {
     radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px) 0 0 / 18px 18px,
     rgba(28, 28, 30, .7);
 }
-.tile rect { transition: filter .15s ease, stroke-width .15s ease; }
-.tile:hover rect, .tile:focus-visible rect { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .28)); stroke-width: 2.5; }
-.tile:focus { outline: none; }
-.tile-sel rect { stroke: #1d1d1f !important; stroke-width: 3.5 !important; }
-html.dark .tile-sel rect { stroke: #fff !important; }
+.dist { cursor: pointer; stroke: rgba(255, 255, 255, .75); stroke-width: 1.1; stroke-linejoin: round; transition: filter .15s ease, fill-opacity .15s ease; }
+html.dark .dist { stroke: rgba(20, 20, 22, .9); }
+.dist:hover, .dist:focus-visible { filter: brightness(1.12) drop-shadow(0 3px 6px rgba(0, 0, 0, .35)); stroke-width: 1.8; outline: none; }
+.dist-sel { stroke: #1d1d1f !important; stroke-width: 2.6 !important; }
+html.dark .dist-sel { stroke: #fff !important; }
+.dist-label { pointer-events: none; paint-order: stroke; stroke: rgba(0, 0, 0, .28); stroke-width: .6px; }
 .legend-dot { width: .6rem; height: .6rem; border-radius: 999px; background: var(--tc, #8e8e93); }
