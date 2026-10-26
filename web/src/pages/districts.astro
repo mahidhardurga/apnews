@@ -108,7 +108,8 @@ import T from '../components/T.astro';
   // every outline point of every district: used to find where the coast (the sea) starts at a given height
   const allPts: [number, number][] = Object.values(AP_DISTRICTS).flatMap((v) =>
     [...v.d.matchAll(/(\d+\.\d) (\d+\.\d)/g)].map((m) => [Number(m[1]), Number(m[2])] as [number, number]));
-  const coastX = (y: number) => allPts.reduce((m, [px, py]) => (Math.abs(py - y) < 9 && px > m ? px : m), 0);
+  const eastX = (y: number) => allPts.reduce((m, [px, py]) => (Math.abs(py - y) < 9 && px > m ? px : m), 0);
+  const westX = (y: number) => allPts.reduce((m, [px, py]) => (Math.abs(py - y) < 9 && px < m ? px : m), Infinity);
 
   function draw() {
     const sum = summarise();
@@ -148,16 +149,27 @@ import T from '../components/T.astro';
         ${lines.map((ln, i) => `<text x="${g.x}" y="${(y0 + i * lh + fs * 0.35).toFixed(1)}" font-size="${fs.toFixed(1)}" font-weight="650">${esc(ln)}</text>`).join('')}
         <text x="${g.x}" y="${(y0 + lines.length * lh + fs * 0.35).toFixed(1)}" font-size="${(fs * 0.95).toFixed(1)}" font-weight="700" opacity="${n ? '1' : '.6'}">${n}</text></g>`);
     }
-    // callouts: keep them in vertical order with a minimum gap so they never overlap
-    callouts.sort((a, b) => a.y - b.y);
-    let prev = -Infinity;
-    const placed = callouts.map((c) => { prev = Math.max(c.y, prev + 15); return { ...c, ly: prev }; });
-    const over = (placed.at(-1)?.ly ?? 0) - (AP_MAP_SIZE.h - 10);
-    if (over > 0) placed.forEach((c) => (c.ly -= over));
+    // Callouts go to whichever side (sea on the right, empty space on the left) is closer to the district,
+    // as long as the text fits there. Each side is stacked top to bottom with a minimum gap.
+    const wEst = (label: string) => (label.length + 4) * (te ? 6.6 : 5.6);
+    type Placed = (typeof callouts)[number] & { side: 'L' | 'R'; ly: number };
+    const placed: Placed[] = callouts.map((c) => {
+      const dl = c.x - westX(c.y), dr = eastX(c.y) - c.x;
+      const fits = westX(c.y) - 16 - wEst(c.label) > 4;
+      return { ...c, side: fits && dl < dr ? 'L' : 'R', ly: c.y };
+    });
+    for (const side of ['L', 'R'] as const) {
+      const col = placed.filter((c) => c.side === side).sort((a, b) => a.y - b.y);
+      let prev = 8;
+      col.forEach((c) => { c.ly = Math.max(c.y, prev + 15); prev = c.ly; });
+      const over = (col.at(-1)?.ly ?? 0) - (AP_MAP_SIZE.h - 10);
+      if (over > 0) col.forEach((c) => (c.ly -= over));
+    }
     const call = placed.map((c) => {
-      const tx = Math.max(c.edge, coastX(c.y), coastX(c.ly)) + 14; // always in the sea, never over neighbouring districts
-      return `<g class="callout"><line x1="${c.x}" y1="${c.y}" x2="${tx - 3}" y2="${(c.ly - 3).toFixed(1)}" stroke="currentColor" stroke-opacity=".4" stroke-width=".8" stroke-dasharray="2 2" />
-        <text x="${tx}" y="${c.ly.toFixed(1)}" font-size="10" font-weight="600" fill="currentColor">${esc(c.label)} <tspan font-weight="800" fill-opacity=".75">${c.n}</tspan></text></g>`;
+      const left = c.side === 'L';
+      const tx = left ? Math.min(westX(c.y), westX(c.ly)) - 14 : Math.max(c.edge, eastX(c.y), eastX(c.ly)) + 14;
+      return `<g class="callout"><line x1="${c.x}" y1="${c.y}" x2="${left ? tx + 3 : tx - 3}" y2="${(c.ly - 3).toFixed(1)}" stroke="currentColor" stroke-opacity=".4" stroke-width=".8" stroke-dasharray="2 2" />
+        <text x="${tx}" y="${c.ly.toFixed(1)}" font-size="10" font-weight="600" fill="currentColor" text-anchor="${left ? 'end' : 'start'}">${esc(c.label)} <tspan font-weight="800" fill-opacity=".75">${c.n}</tspan></text></g>`;
     }).join('');
     svg.innerHTML = `<text x="${AP_MAP_SIZE.w + MARGIN - 16}" y="${AP_MAP_SIZE.h - 16}" text-anchor="end" font-size="12" font-style="italic" fill="currentColor" opacity=".28">${te ? 'బంగాళాఖాతం' : 'Bay of Bengal'}</text>${shapes.join('')}${labels.join('')}<g class="dist-label" style="paint-order:normal;stroke:none">${call}</g>`;
   }
