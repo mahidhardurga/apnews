@@ -38,3 +38,10 @@ export const TILE_POS: Record<string, [number, number]> = {
   'Kurnool': [2, 6], 'Nandyal': [3, 6], 'Prakasam': [5, 7], 'Anantapur': [1, 7], 'YSR Kadapa': [3, 7],
   'Sri Sathya Sai': [2, 8], 'Annamayya': [3, 8], 'Nellore': [5, 8], 'Chittoor': [3, 9], 'Tirupati': [4, 9],
 };
+
+// Same palette as the .t-* classes in global.css (used where CSS variables cannot be, e.g. SVG fills).
+export const TOPIC_COLOR: Record<string, string> = {
+  politics: '#6366f1', crime: '#ef4444', sports: '#22c55e', entertainment: '#ec4899', business: '#f59e0b',
+  technology: '#06b6d4', education: '#3b82f6', health: '#14b8a6', weather: '#0ea5e9', agriculture: '#84cc16',
+  devotional: '#f97316', general: '#8e8e93',
+};

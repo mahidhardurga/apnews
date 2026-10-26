@@ -162,3 +162,24 @@ html.dark .briefing-card { border-color: rgba(167, 139, 250, .28); }
   .news-card, .live-dot, .skeleton { animation: none !important; }
   .news-card { transition: none; }
 }
+
+/* ===== district map ===== */
+.map-card {
+  border-radius: 1.5rem; padding: .75rem; border: 1px solid rgba(0, 0, 0, .06);
+  background:
+    radial-gradient(rgba(0, 0, 0, .06) 1px, transparent 1px) 0 0 / 18px 18px,
+    rgba(255, 255, 255, .7);
+  backdrop-filter: blur(10px);
+}
+html.dark .map-card {
+  border-color: rgba(255, 255, 255, .09);
+  background:
+    radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px) 0 0 / 18px 18px,
+    rgba(28, 28, 30, .7);
+}
+.tile rect { transition: filter .15s ease, stroke-width .15s ease; }
+.tile:hover rect, .tile:focus-visible rect { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .28)); stroke-width: 2.5; }
+.tile:focus { outline: none; }
+.tile-sel rect { stroke: #1d1d1f !important; stroke-width: 3.5 !important; }
+html.dark .tile-sel rect { stroke: #fff !important; }
+.legend-dot { width: .6rem; height: .6rem; border-radius: 999px; background: var(--tc, #8e8e93); }
