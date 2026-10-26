@@ -95,6 +95,10 @@ import T from '../components/T.astro';
     return m;
   };
   const edges = Object.fromEntries(Object.entries(AP_DISTRICTS).map(([k, v]) => [k, rightEdge(v.d)]));
+  // every outline point of every district: used to find where the coast (the sea) starts at a given height
+  const allPts: [number, number][] = Object.values(AP_DISTRICTS).flatMap((v) =>
+    [...v.d.matchAll(/(\d+\.\d) (\d+\.\d)/g)].map((m) => [Number(m[1]), Number(m[2])] as [number, number]));
+  const coastX = (y: number) => allPts.reduce((m, [px, py]) => (Math.abs(py - y) < 9 && px > m ? px : m), 0);
 
   function draw() {
     const sum = summarise();
@@ -117,7 +121,7 @@ import T from '../components/T.astro';
       const label = te ? DISTRICT_TE[name] ?? name : name;
       shapes.push(`<path class="dist${selected === name ? ' dist-sel' : ''}" tabindex="0" role="button" data-d="${esc(name)}" aria-label="${esc(name)}: ${n}"
         d="${g.d}" fill-rule="evenodd" ${fill}><title>${esc(name)}: ${n}</title></path>`);
-      if (g.r < 14) { // too small for its name: label it in the sea with a leader line
+      if (g.r < 14 || name === 'Eluru') { // too small for its name: label it in the sea with a leader line
         callouts.push({ name, label, n, x: g.x, y: g.y, edge: edges[name]! });
         labels.push(`<circle cx="${g.x}" cy="${g.y}" r="1.9" fill="${strong ? '#fff' : 'currentColor'}" class="dist-label" />`);
         continue;
@@ -139,7 +143,7 @@ import T from '../components/T.astro';
     const over = (placed.at(-1)?.ly ?? 0) - (AP_MAP_SIZE.h - 10);
     if (over > 0) placed.forEach((c) => (c.ly -= over));
     const call = placed.map((c) => {
-      const tx = c.edge + 14;
+      const tx = Math.max(c.edge, coastX(c.y), coastX(c.ly)) + 14; // always in the sea, never over neighbouring districts
       return `<g class="callout"><line x1="${c.x}" y1="${c.y}" x2="${tx - 3}" y2="${(c.ly - 3).toFixed(1)}" stroke="currentColor" stroke-opacity=".4" stroke-width=".8" stroke-dasharray="2 2" />
         <text x="${tx}" y="${c.ly.toFixed(1)}" font-size="10" font-weight="600" fill="currentColor">${esc(c.label)} <tspan font-weight="800" fill-opacity=".75">${c.n}</tspan></text></g>`;
     }).join('');
