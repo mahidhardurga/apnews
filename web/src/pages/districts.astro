@@ -21,8 +21,8 @@ import T from '../components/T.astro';
   </div>
 
   <div class="grid gap-4 lg:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
-    <div class="map-card overflow-x-auto"><svg id="map" viewBox="0 0 748 536" role="group" aria-label="Andhra Pradesh district map" class="mx-auto h-auto w-full min-w-[620px] sm:min-w-0"></svg></div>
-    <section id="panel" class="card lg:max-h-[44rem] lg:overflow-auto" aria-live="polite">
+    <div class="map-card overflow-x-auto lg:sticky lg:top-28 lg:self-start"><svg id="map" viewBox="0 0 748 536" role="group" aria-label="Andhra Pradesh district map" class="mx-auto h-auto w-full min-w-[620px] sm:min-w-0"></svg></div>
+    <section id="panel" class="card" aria-live="polite">
       <p class="muted"><T en="Select a district on the map." te="పటంలో జిల్లాను ఎంచుకోండి." /></p>
     </section>
   </div>
@@ -190,6 +190,7 @@ import T from '../components/T.astro';
           </span></a>`).join('')}</div>`
         : `<p class="muted">${dual('No headlines for this district yet.', 'ఈ జిల్లాకు శీర్షికలు ఇంకా లేవు.')}</p>`}
       <p class="mt-4"><a class="btn no-underline" href="/?district=${encodeURIComponent(name)}${topic ? `&topic=${topic}` : ''}">${dual('Open in the main list', 'ప్రధాన జాబితాలో చూడండి')}</a></p>`;
+    if (!matchMedia('(min-width: 1024px)').matches) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   const pick = (e: Event) => (e.target as Element).closest('[data-d]')?.getAttribute('data-d');
